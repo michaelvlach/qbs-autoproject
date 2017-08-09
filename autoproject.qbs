@@ -8,8 +8,9 @@ Project
     //CONFIGURATION
     property stringList headers: ["\\.h$"]
     property stringList sources: ["\\.cpp$"]
-    property stringList additionalDirectories: []
-    property stringList ignorelist: ["\\.user$", "autoproject"]
+    property stringList additionalDirectories: ["config", "style", "reference"]
+    property stringList whiteFileList: ["\\.ui$", "\\.qrc$", "\\.qdoc$"]
+    property stringList ignoreDirlist: ["autoproject"]
     //END OF CONFIGURATION
 
     Probe
@@ -18,11 +19,13 @@ Project
 
         configure:
         {
+
             var targetName = qbs.targetOS + "-" + qbs.architecture + "-" + qbs.toolchain.join("-");
-            var ignoreRegex = ignorelist.join('|');
+            var whiteListRegex = whiteFileList.join('|');
+            var ignoreListRegex = ignoreDirlist.join('|');
             var sourceRegex = sources.join('|');
             var headerRegex = headers.join('|');
-            var additionalDirs = additionalDirectories.concat(getDuplicateDirNames(sourceDirectory));
+            var additionalDirs = additionalDirectories.concat(getDuplicateDirNames(sourceDirectory)).concat(getEmptyDirNames(sourceDirectory));
             var additionalDirsRegex = getAdditionalDirsRegex(additionalDirs);
             var rootProject = getProjectTree(sourceDirectory);
             printProject(rootProject, "");
@@ -37,13 +40,20 @@ Project
             //Utility
             function getAdditionalDirsRegex(dirs) { dirs.forEach(function(element, index, array) { array[index] = "^" + element + "$"; }); return dirs.join("|"); }
             function getFilesInDir(dir) { return File.directoryEntries(dir, File.Files); }
-            function getFilesInDirFiltered(dir) { return getFilesInDir(dir).filter(function(element) { return !element.match(ignoreRegex); }); }
+            function getFilesInDirFiltered(dir) { return getFilesInDir(dir).filter(function(element) { return element.match(whiteListRegex); }); }
             function getDirsInDir(dir) { return File.directoryEntries(dir, File.Dirs | File.NoDotAndDotDot); }
-            function getDirsInDirFiltered(dir) { return getDirsInDir(dir).filter(function(element) { return !element.match(ignoreRegex); }); }
+            function getDirsInDirFiltered(dir) { return getDirsInDir(dir).filter(function(element) { return !element.match(ignoreListRegex); }); }
             function getDuplicateDirNames(dir) { return getDirNamesRecursive(dir).filter(function(element, index, array) { return array.lastIndexOf(element) != index; }); }
             function getDirNamesRecursive(dir)
             {
                 var dirs = getDirsInDirFiltered(dir);
+                for(var i in dirs)
+                    dirs = dirs.concat(getDirNamesRecursive(FileInfo.joinPaths(dir, dirs[i])));
+                return dirs;
+            }
+            function getEmptyDirNames(dir)
+            {
+                var dirs = getDirsInDirFiltered(dir).filter(function(element) { return getFilesInDirFiltered(FileInfo.joinPaths(this, element)).length == 0; }, dir);
                 for(var i in dirs)
                     dirs = dirs.concat(getDirNamesRecursive(FileInfo.joinPaths(dir, dirs[i])));
                 return dirs;
@@ -71,7 +81,7 @@ Project
 
             function getSubProjectsDirs(dir)
             {
-                return getProjectDirs(dir, ".*").filter(function(element) { return !this.contains(FileInfo.baseName(element)); }, additionalDirs);
+                return getProjectDirs(dir, ".*").filter(function(element) { return !FileInfo.baseName(element).match(additionalDirsRegex); });
             }
 
             function getSubProjects(dirs)
