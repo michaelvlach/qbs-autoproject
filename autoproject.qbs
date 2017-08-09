@@ -8,9 +8,9 @@ Project
     //CONFIGURATION
     property stringList headers: ["\\.h$"]
     property stringList sources: ["\\.cpp$"]
-    property stringList additionalDirectories: ["config", "style", "reference"]
-    property stringList whiteFileList: ["\\.ui$", "\\.qrc$", "\\.qdoc$"]
-    property stringList ignoreDirlist: ["autoproject"]
+    property stringList additionalDirectories: []
+    property stringList whiteList: []
+    property stringList ignorelist: []
     //END OF CONFIGURATION
 
     Probe
@@ -19,12 +19,13 @@ Project
 
         configure:
         {
-
             var targetName = qbs.targetOS + "-" + qbs.architecture + "-" + qbs.toolchain.join("-");
-            var whiteListRegex = whiteFileList.join('|');
-            var ignoreListRegex = ignoreDirlist.join('|');
+            var whiteListRegex = whiteList.concat(["\\.ui$", "\\.qrc$", "\\.qdoc$"]).concat(headers).concat(sources).join('|');
+            var ignoreListRegex = ignorelist.concat(["autoproject"]).join('|');
             var sourceRegex = sources.join('|');
             var headerRegex = headers.join('|');
+            console.info("NON EMPTY:" + getNonEmptyDirPaths(sourceDirectory));
+            console.info("EMPTY:" + getEmptyDirNames(sourceDirectory));
             var additionalDirs = additionalDirectories.concat(getDuplicateDirNames(sourceDirectory)).concat(getEmptyDirNames(sourceDirectory));
             var additionalDirsRegex = getAdditionalDirsRegex(additionalDirs);
             var rootProject = getProjectTree(sourceDirectory);
@@ -32,7 +33,7 @@ Project
 
             function printProject(project, indent)
             {
-                console.info(indent + project["name"] + " " + project["path"])
+                console.info(indent + " " + project["name"] + " " + project["path"])
                 for(var i in project["projects"])
                     printProject(project["projects"][i], indent + "+");
             }
@@ -51,24 +52,27 @@ Project
                     dirs = dirs.concat(getDirNamesRecursive(FileInfo.joinPaths(dir, dirs[i])));
                 return dirs;
             }
-            function getEmptyDirNames(dir)
-            {
-                var dirs = getDirsInDirFiltered(dir).filter(function(element) { return getFilesInDirFiltered(FileInfo.joinPaths(this, element)).length == 0; }, dir);
-                for(var i in dirs)
-                    dirs = dirs.concat(getDirNamesRecursive(FileInfo.joinPaths(dir, dirs[i])));
-                return dirs;
-            }
-
-            //Scanner
-            function getProjectDirs(dir, filter)
+            function getDirPathsRecursive(dir, filter)
             {
                 var dirs = getDirsInDirFiltered(dir).filter(function(element) { return element.match(filter); });
                 dirs.forEach(function(element, index, array) { array[index] = FileInfo.joinPaths(this, element); }, dir)
                 for(var i in dirs)
-                    dirs = dirs.concat(getProjectDirs(FileInfo.joinPaths(dir, dirs[i]), filter));
+                    dirs = dirs.concat(getDirPathsRecursive(FileInfo.joinPaths(dir, dirs[i]), filter));
                 return dirs;
             }
 
+            function getEmptyDirNames(dir)
+            {
+                var dirs = getDirPathsRecursive(dir, ".*").filter(function(element) { return getFilesInDirFiltered(element).length == 0; });
+                dirs.forEach(function(element, index, array) { array[index] = FileInfo.fileName(element); })
+                return dirs;
+            }
+            function getNonEmptyDirPaths(dir)
+            {
+                return getDirPathsRecursive(dir, ".*").filter(function(element) { return getFilesInDirFiltered(element).length > 0; })
+            }
+
+            //Scanner
             function getProjectFiles(dir, filter)
             {
                 var files = getFilesInDirFiltered(dir).filter(function(element) { return element.match(filter); });
@@ -81,7 +85,7 @@ Project
 
             function getSubProjectsDirs(dir)
             {
-                return getProjectDirs(dir, ".*").filter(function(element) { return !FileInfo.baseName(element).match(additionalDirsRegex); });
+                return getDirPathsRecursive(dir, ".*").filter(function(element) { return !FileInfo.fileName(element).match(additionalDirsRegex); });
             }
 
             function getSubProjects(dirs)
@@ -95,9 +99,9 @@ Project
             function getProjectTree(dir)
             {
                 var project = {};
-                project["name"] = FileInfo.baseName(dir);
+                project["name"] = FileInfo.fileName(dir);
                 project["path"] = dir;
-                project["dirs"] = getProjectDirs(dir, additionalDirsRegex);
+                project["dirs"] = getDirPathsRecursive(dir, additionalDirsRegex);
                 project["headers"] = getProjectFiles(dir, headerRegex);
                 project["sources"] = getProjectFiles(dir, sourceRegex);
                 project["projects"] = getSubProjects(getSubProjectsDirs(dir));
