@@ -5,144 +5,94 @@ import qbs.TextFile
 
 Project
 {
-    //-------------//
-    //CONFIGURATION//
-    //-------------//
-
-    //Name to be displayd in IDEs
-    name: "Autoproject"
-    //Path to the autoproject.qbs from project's root
-    property string pathFromRootToAutoproject: ""
-    //Path to installation root from project's root
-    property string pathFromRootToInstallRoot: "bin"
-    //Path to lib destination from project's root
-    property string pathFromRootToLib: "lib"
-    //Path to sources from project's root
-    property string pathFromRootToSourceRoot: "src"
-    //Path to pubic headers from project's root
-    property string pathFromRootToIncludeRoot: "include"
-
-    //ADVANCED
-    property string qtRoot: "C:/Qt/5.9.1/msvc2017_64/" //property is set by Qbs but is inaccessible from Project or Probe items
-    property string testDir: "test" //subdirectory of this name will generate test product
-    property string docDir: "doc" //subdirectory of this name will generate documentation product
-    property string resourceDir: "resources" //subdirectory of this name will be added to the project as resources
-
-    //-------------//
-    //END OF CONFIG//
-    //-------------//
-
-    id: autoproject
-    property path root: sourceDirectory.replace(pathFromRootToAutoproject, "")
+    //CONFIGURATION
+    property stringList headers: ["\\.h$"]
+    property stringList sources: ["\\.cpp$"]
+    property stringList additionalDirectories: []
+    property stringList ignorelist: ["\\.user$", "autoproject"]
+    //END OF CONFIGURATION
 
     Probe
     {
-        id: qtscanner
-        condition: autoproject.qtRoot != ""
-        property var qtmodules: {}
+        id: autoscanner
 
         configure:
         {
-            var qtIncludePath = FileInfo.joinPaths(autoproject.qtRoot, "include");
-            var qtModules = {};
-            var modules = File.directoryEntries(qtIncludePath, File.Dirs | File.NoDotAndDotDot);
+            var targetName = qbs.targetOS + "-" + qbs.architecture + "-" + qbs.toolchain.join("-");
+            var ignoreRegex = ignorelist.join('|');
+            var sourceRegex = sources.join('|');
+            var headerRegex = headers.join('|');
+            var additionalDirs = additionalDirectories.concat(getDuplicateDirNames(sourceDirectory));
+            var additionalDirsRegex = getAdditionalDirsRegex(additionalDirs);
+            var rootProject = getProjectTree(sourceDirectory);
+            printProject(rootProject, "");
 
-            for(var i in modules)
+            function printProject(project, indent)
             {
-                var module = modules[i];
-                var headers = File.directoryEntries(FileInfo.joinPaths(qtIncludePath, module), File.Files);
-                var moduleName = module.replace("Qt", "").toLowerCase();
-                qtModules[moduleName] = headers;
+                console.info(indent + project["name"] + " " + project["path"])
+                for(var i in project["projects"])
+                    printProject(project["projects"][i], indent + "+");
             }
 
-            qtmodules = qtModules;
-        }
-    }
-
-    Probe
-    {
-        id: includescanner
-        condition: autoproject.pathFromRootToIncludeRoot != ""
-        property var includes: {}
-
-        configure:
-        {
-            function scanIncludes(dir, scanned)
+            //Utility
+            function getAdditionalDirsRegex(dirs) { dirs.forEach(function(element, index, array) { array[index] = "^" + element + "$"; }); return dirs.join("|"); }
+            function getFilesInDir(dir) { return File.directoryEntries(dir, File.Files); }
+            function getFilesInDirFiltered(dir) { return getFilesInDir(dir).filter(function(element) { return !element.match(ignoreRegex); }); }
+            function getDirsInDir(dir) { return File.directoryEntries(dir, File.Dirs | File.NoDotAndDotDot); }
+            function getDirsInDirFiltered(dir) { return getDirsInDir(dir).filter(function(element) { return !element.match(ignoreRegex); }); }
+            function getDuplicateDirNames(dir) { return getDirNamesRecursive(dir).filter(function(element, index, array) { return array.lastIndexOf(element) != index; }); }
+            function getDirNamesRecursive(dir)
             {
-                var files = File.directoryEntries(dir, File.Files);
-
-                for(var i in files)
-                {
-                    var file = files[i];
-                    scanned[file] = dir;
-                }
-
-                var dirs = File.directoryEntries(dir, File.Dirs | File.NoDotAndDotDot);
-
+                var dirs = getDirsInDirFiltered(dir);
                 for(var i in dirs)
-                {
-                    var subdir = dirs[i];
-                    scanIncludes(FileInfo.joinPaths(dir, subdir), scanned);
-                }
+                    dirs = dirs.concat(getDirNamesRecursive(FileInfo.joinPaths(dir, dirs[i])));
+                return dirs;
             }
 
-            var headers = {};
-            var includeDir = FileInfo.joinPaths(autoproject.root, autoproject.pathFromRootToIncludeRoot);
-            scanIncludes(includeDir, headers);
-            includes = headers;
-        }
-    }
-
-    Probe
-    {
-        id: projectscanner
-        condition: autoproject.pathFromRootToSourceRoot != ""
-        property var projects: {}
-
-        configure:
-        {
-            function scanProjects(dir, project)
+            //Scanner
+            function getProjectDirs(dir, filter)
             {
-                var dirs = File.directoryEntries(dir, File.Dirs | File.NoDotAndDotDot);
-
+                var dirs = getDirsInDirFiltered(dir).filter(function(element) { return element.match(filter); });
+                dirs.forEach(function(element, index, array) { array[index] = FileInfo.joinPaths(this, element); }, dir)
                 for(var i in dirs)
-                {
-                    var subdir = dirs[i];
-                    var subdirpath = FIleInfo.joinPaths(dir, subdir);
-
-                    if(subdir == "test")
-                    {
-                        project["test"] = {};
-                        project["test"]["path"] = subdirpath;
-                    }
-                    else if(subdir == "doc")
-                    {
-                        project["doc"] = {}
-                        project["doc"]["path"] = subdirpath;
-                    }
-                    else if(subdir == "resources")
-                    {
-                        project["resources"] = {}
-                        project["resources"]["path"] = subdirpath;
-                    }
-                    else
-                    {
-                        project[subdir] = {}
-                        project[subdir]["path"] = subdirpath;
-                        scannedProjects(subdirpath, project[subdir]);
-                    }
-                }
+                    dirs = dirs.concat(getProjectDirs(FileInfo.joinPaths(dir, dirs[i]), filter));
+                return dirs;
             }
 
-            var scannedProjects = {};
-            var sourceDir = FileInfo.joinPaths(autoproject.root, autoproject.pathFromRootToSourceRoot);
-            scanProjects(sourceDir, scannedProjects);
-            projects = scannedProjects;
+            function getProjectFiles(dir, filter)
+            {
+                var files = getFilesInDirFiltered(dir).filter(function(element) { return element.match(filter); });
+                files.forEach(function(element, index, array) { array[index] = FileInfo.joinPaths(this, element); }, dir)
+                var dirs = getDirsInDirFiltered(dir).filter(function(element) { return additionalDirs.contains(element); });
+                for(var i in dirs)
+                    files = files.concat(getProjectFiles(FileInfo.joinPaths(dir, dirs[i]), filter));
+                return files;
+            }
+
+            function getSubProjectsDirs(dir)
+            {
+                return getProjectDirs(dir, ".*").filter(function(element) { return !this.contains(FileInfo.baseName(element)); }, additionalDirs);
+            }
+
+            function getSubProjects(dirs)
+            {
+                var projects = [];
+                for(var i in dirs)
+                    projects.push(getProjectTree(dirs[i]));
+                return projects;
+            }
+
+            function getProjectTree(dir)
+            {
+                var project = {};
+                project["name"] = FileInfo.baseName(dir);
+                project["path"] = dir;
+                project["dirs"] = getProjectDirs(dir, additionalDirsRegex);
+                project["headers"] = getProjectFiles(dir, headerRegex);
+                project["sources"] = getProjectFiles(dir, sourceRegex);
+                project["projects"] = getSubProjects(getSubProjectsDirs(dir));
+                return project;
+            }
         }
-    }
-
-    references:
-    {
-
     }
 }
