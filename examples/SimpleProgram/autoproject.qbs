@@ -24,6 +24,12 @@ Project
     property stringList documentationConfigExtensions: ["qdocconf"]
     property stringList additionalExtensions: ["ui", "rc"]
 
+    property var externalModules:
+    {
+        return { ModuleName: ["header.h", "other_header.h"],
+                 OtherModule: ["some_header.h"] }
+    }
+
     Probe
     {
         id: qtscanner
