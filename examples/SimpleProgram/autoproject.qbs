@@ -26,8 +26,8 @@ Project
 
     property var externalModules:
     {
-        return { ModuleName: ["header.h", "other_header.h"],
-                 OtherModule: ["some_header.h"] }
+        return { ModuleName: "path/to/include",
+                 OtherModule: "path/to/include" }
     }
 
     Probe
