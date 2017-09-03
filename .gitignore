@@ -34,3 +34,4 @@
 # Custom
 doc
 build-*
+*.user
