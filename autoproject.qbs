@@ -8,7 +8,7 @@ Project
     name: FileInfo.baseName(sourceDirectory)
     id: autoproject
 
-    property path autoprojectFileDirectory: ""
+    property path autoprojectFileDirectory: "" //relative to project root
     property path rootDirectory: sourceDirectory.replace(autoprojectFileDirectory, "")
     property path autoprojectsDirectory: "autoprojects"
     property path targetDirectory: [qbs.targetOS, qbs.architecture, qbs.toolchain.join("-")].join("-")
@@ -82,37 +82,75 @@ Project
             function removeDuplicates(ar) { return ar.filter(function(element, index, array) { return array.indexOf(element) == index; }); }
 
             var scannedProjects = [];
+            scan(rootDirectory);
 
-            function scanProjects(dir)
+            function hasExtension(file, extensions)
             {
-                var project = createProject(dir);
-
-                var dirs = getSubDirs(dir);
-                var ignored = ignoredDirectories.concat(additionalDirectories);
-
-                for(var i in dirs)
+                for(var i in extensions)
                 {
-                    var subdir = dirs[i];
+                    if(file.endsWith(extensions[i]))
+                        return true;
+                }
+                return false;
+            }
 
-                    if(ignored.contains(subdir))
-                        continue;
-                    else if(subdir == includeDirectory)
-                    {
-                        var subdirs = getSubDirs(makePath(dir, includeDirectory));
-                        project["publicHeaders"] = getProjectHeaders(makePath(dir, includeDirectory));
+            function scan(dir)
+            {
+                var files = File.directoryEntries(dir, File.Files);
+                var sources = [];
+                var headers = [];
+                var docs = [];
+                var docConfigs = [];
+                var miscFiles = [];
 
-                        for(var j in subdirs)
-                        {
-                            var sub = makePath(dir, subdir, subdirs[j]);
-                            project["subProjects"].push(scanProjects(sub));
-                        }
-                    }
-                    else
-                        project["subProjects"].push(scanProjects(sub));
+                for(var i in files)
+                {
+                    var file = files[i];
+                    if(hasExtensions(file, sourceExtensions))
+                        sources.push(file);
+                    else if(hasExtension(file, headerExtensions))
+                        headers.push(file);
+                    else if(hasExtension(file, documentationExtensions))
+                        docs.push(file);
+                    else if(hasExtension(file, documentationConfigExtensions))
+                        docConfigs.push(file);
+                    else if(hasExtension(file, additionalExtensions))
+                        miscFiles.push(file);
                 }
 
-                return project;
+
             }
+
+//            function scanDir(dir)
+//            {
+//                var project = createProject(dir);
+
+//                var dirs = getSubDirs(dir);
+//                var ignored = ignoredDirectories.concat(additionalDirectories);
+
+//                for(var i in dirs)
+//                {
+//                    var subdir = dirs[i];
+
+//                    if(ignored.contains(subdir))
+//                        continue;
+//                    else if(subdir == includeDirectory)
+//                    {
+//                        var subdirs = getSubDirs(makePath(dir, includeDirectory));
+//                        project["publicHeaders"] = getProjectHeaders(makePath(dir, includeDirectory));
+
+//                        for(var j in subdirs)
+//                        {
+//                            var sub = makePath(dir, subdir, subdirs[j]);
+//                            project["subProjects"].push(scanProjects(sub));
+//                        }
+//                    }
+//                    else
+//                        project["subProjects"].push(scanProjects(sub));
+//                }
+
+//                return project;
+//            }
 
             projects = scannedProjects;
         }
