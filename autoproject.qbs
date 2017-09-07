@@ -11,7 +11,7 @@ Project
     //Configuration
     property path autoprojectFileDirectory: "" //relative to project root
     property path autoprojectsDirectory: "autoprojects"
-    property stringList additionalProjectDirectories: ["include", "private", "resources", "src", "include"]
+    property stringList additionalProjectDirectories: ["include", "private", "resources", "src", "include", "doc", "test"]
     property stringList sourceExtensions: ["cpp", "h"]
     property var productTemplates:
     {
@@ -19,7 +19,8 @@ Project
         {
             TestApplication: ["Test.h", "test.h", "Test.cpp", "test.cpp"],
             Application: ["main.cpp"],
-            SharedLibrary: [".h", ".cpp", ".ui", ".rc"],
+            SharedLibrary: [".cpp"],
+            Interfaces: [".h"],
             DocGenProduct: [".qdocconf"],
             DocProduct: [".qdoc"]
         };
@@ -32,7 +33,8 @@ Project
             cinject: ["cinject.h"],
             cppcommandline: ["cppcommandline.h"],
             qtestbdd: ["qtestbdd.h"],
-            gtestbdd: ["gtestbdd.h"]
+            gtestbdd: ["gtestbdd.h"],
+            gtest: ["gtest/gtest.h"]
         };
         return modules;
     }
@@ -73,11 +75,49 @@ Project
 
         configure:
         {
+            //utility
+            function prependPath(element, index, array) { array[index] = makePath(this, element); }
+            function makePath(dir, sub) { return FileInfo.joinPaths(dir, sub); }
+            function getFiles(dir) { return File.directoryEntries(dir, File.Files); }
+            function getFilesWithPath(dir)
+            {
+                var files = getFiles(dir);
+                files.forEach(prependPath, dir);
+                return files;
+            }
+            function getProjectFiles(dir)
+            {
+                var files = getFilesWithPath(dir);
+                for(var i in additionalProjectDirectories)
+                    files = files.concat(getFilesWithPath(makePath(dir, additionalProjectDirectories[i])));
+                return files;
+            }
+
             var foundProjects = scan(rootDirectory);
 
             function scan(dir)
             {
-                var files = File.directoryEntries(dir, File.Files);
+                var project = {};
+                project["products"] = [];
+                var files = getProjectFiles(dir);
+
+                for(var i in files)
+                {
+                    var file = files[i];
+
+                    for(var template in productTemplates)
+                    {
+                        var patterns = productTemplates[template];
+
+                        for(var j in patterns)
+                        {
+                            if(file.endsWith(patterns[j]))
+                            {
+
+                            }
+                        }
+                    }
+                }
 
                 return [];
             }
