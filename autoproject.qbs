@@ -8,42 +8,45 @@ Project
     name: FileInfo.baseName(sourceDirectory)
     id: autoproject
 
-    //Configuration
-    property path autoprojectFileDirectory: "" //relative to project root
-    property path autoprojectsDirectory: "autoprojects"
-    property stringList additionalProjectDirectories: ["include", "private", "resources", "src", "include", "doc", "test"]
+    //------------//
+    //ONFIGURATION//
+    //------------//
+    property path autoprojectFileDirectory: "" //relative to desired project root
+    property path autoprojectsDirectory: ".autoproject"
     property stringList sourceExtensions: ["cpp", "h"]
-    property var productTemplates:
+    property path qtIncludeDirectory: "C:/Qt/5.10.0/msvc2017_64/include/"
+    property stringList ignoredDirectories: []
+
+    property var rules:
     {
-        var templates =
-        {
-            TestApplication: ["Test.h", "test.h", "Test.cpp", "test.cpp"],
-            Application: ["main.cpp"],
-            SharedLibrary: [".cpp"],
-            Interfaces: [".h"],
-            DocGenProduct: [".qdocconf"],
-            DocProduct: [".qdoc"]
+        return {
+            TestApplication: { directories: ["test"],                      patterns: []             },
+            Application:     { directories: ["", "src", "private"],        patterns: ["main.cpp"]   },
+            SharedLibrary:   { directories: ["src", "private", "include"], patterns: []             },
+            Interfaces:      { directories: [],                            patterns: [".h"]         },
+            DocGen:          { directories: ["doc"],                       patterns: [".qdocconf"]  },
+            Doc:             { directories: ["doc"],                       patterns: [".qdoc"]      }
         };
-        return templates;
     }
-    property var externalModules:
+
+    property var modules:
     {
-        var modules =
-        {
-            cinject: ["cinject.h"],
-            cppcommandline: ["cppcommandline.h"],
-            qtestbdd: ["qtestbdd.h"],
-            gtestbdd: ["gtestbdd.h"],
-            gtest: ["gtest/gtest.h"]
+        return {
+            cinject:        { includeDirectory: "", files: ["cinject.h"] },
+            cppcommandline: { includeDirectory: "", files: ["cppcommandline.h"] },
+            qtestbdd:       { includeDirectory: "", files: ["qtestbdd.h"] },
+            gtestbdd:       { includeDirectory: "", files: ["gtestbdd.h"] },
+            gtest:          { includeDirectory: "", files: ["gtest/gtest.h"] }
         };
-        return modules;
     }
 
     //Advanced
-    property path rootDirectory: sourceDirectory.replace(autoprojectFileDirectory, "")
-    property path targetDirectory: [qbs.targetOS, qbs.architecture, qbs.toolchain.join("-")].join("-")
-    property path qtIncludeDirectory: "C:/Qt/5.10.0/msvc2017_64/include/"
-    property stringList ignoredDirectories: [autoprojectsDirectory]
+    property path rootDir: sourceDirectory.replace(autoprojectFileDirectory, "")
+    property path targetDir: [qbs.targetOS, qbs.architecture, qbs.toolchain.join("-")].join("-")
+
+    //--------------------//
+    //END OF CONFIGURATION//
+    //--------------------//
 
     Probe
     {
@@ -75,53 +78,66 @@ Project
 
         configure:
         {
-            //utility
-            function prependPath(element, index, array) { array[index] = makePath(this, element); }
-            function makePath(dir, sub) { return FileInfo.joinPaths(dir, sub); }
-            function getFiles(dir) { return File.directoryEntries(dir, File.Files); }
-            function getFilesWithPath(dir)
+            function getIgnoredDirs()
             {
-                var files = getFiles(dir);
-                files.forEach(prependPath, dir);
-                return files;
-            }
-            function getProjectFiles(dir)
-            {
-                var files = getFilesWithPath(dir);
-                for(var i in additionalProjectDirectories)
-                    files = files.concat(getFilesWithPath(makePath(dir, additionalProjectDirectories[i])));
-                return files;
+                var dirs = [autoprojectsDirectory, qbs.installRoot];
+                for(var i in modules)
+                {
+                    var moduleDirectory = modules[i]["includeDirectory"];
+                    if(!dirs.contains(moduleDirectory))
+                        dirs.push(moduleDirectory);
+                }
+                return dirs;
             }
 
-            var foundProjects = scan(rootDirectory);
+            function getAdditionalDirs()
+            {
+                var dirs = [];
+                for(var i in rules)
+                {
+                    var ruleDirs = rules[i]["directories"];
+                    for(var j in ruleDirs)
+                    {
+                        var dir = ruleDirs[j];
+                        if(dir && !dirs.contains(dir))
+                            dirs.push(dir);
+                    }
+                }
+                return dirs;
+            }
+
+            function scanProjects(dir)
+            {
+                var found = [];
+                var dirs = File.directoryEntries(dir, File.Dirs | File.NoDotAndDotDot);
+                for(var i in dirs)
+                {
+                    var d = dirs[i];
+                    if(ignoredDirs.contains(d))
+                        continue;
+
+                    if(!additionalDirs.contains(d))
+                    {
+                        if(found.contains(d))
+                            found.remove(d);
+                        else
+                        {
+                            found.push(d);
+                        }
+                    }
+
+
+                }
+            }
 
             function scan(dir)
             {
-                var project = {};
-                project["products"] = [];
-                var files = getProjectFiles(dir);
-
-                for(var i in files)
-                {
-                    var file = files[i];
-
-                    for(var template in productTemplates)
-                    {
-                        var patterns = productTemplates[template];
-
-                        for(var j in patterns)
-                        {
-                            if(file.endsWith(patterns[j]))
-                            {
-
-                            }
-                        }
-                    }
-                }
-
-                return [];
+                var foundProjects = scanProjects(dir);
             }
 
+            var ignoredDirs = getIgnoredDirs();
+            var additionalDirs = getAdditionalDirs();
+            var foundProjects = scan(rootDirectory);
             projects = foundProjects;
         }
     }
