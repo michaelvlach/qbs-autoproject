@@ -78,6 +78,81 @@ Project
 
         configure:
         {
+            function makePath(dir, subdir)
+            {
+                return FileInfo.joinPaths(dir, subdir);
+            }
+
+            function getSubDirs(dir)
+            {
+                return File.directoryEntries(dir, File.Dirs | File.NoDotAndDotDot);
+            }
+
+            function getSubDirsRecursively(dir)
+            {
+                var dirs = [];
+                var subdirs = getSubDirs(dir);
+                for(var i in subdirs)
+                {
+                    var subdir = makePath(dir, subdirs[i]);
+                    if(!isIgnored(subdir) && !isAdditional(subdir))
+                    {
+                        dirs.push(subdir);
+                        dirs = dirs.concat(getSubDirsRecursively(subdir));
+                    }
+                }
+                return dirs;
+            }
+
+            function removeDuplicateBaseNames(list)
+            {
+                var baseNames = [];
+                list.forEach(function(element)
+                {
+                    this.push(FileInfo.baseName(element));
+                }, baseNames);
+
+                return list.filter(function(element)
+                {
+                    var baseName = FileInfo.baseName(element);
+                    return this.indexOf(baseName) == this.lastIndexOf(baseName);
+                }, baseNames);
+            }
+
+            function isIgnored(dir)
+            {
+                for(var i in ignoredDirs)
+                {
+                    var ignoredDir = ignoredDirs[i];
+                    if(FileInfo.isAbsolutePath(ignoredDir))
+                    {
+                        if(element != ignoredDir)
+                            return true;
+                    }
+                    else if(element.endsWith("/" + ignoredDir))
+                        return true;
+                }
+
+                return false;
+            }
+
+            function isAdditional(dir)
+            {
+                for(var i in additionalDirs)
+                {
+                    var additionalDir = additionalDirs[i];
+                    if(element.endsWith("/" + additionalDir))
+                        return true;
+                }
+
+                return false;
+            }
+
+            function getProjectRoots(root)
+            {
+                return removeDuplicateBaseNames(getSubDirsRecursively(root));
+            }
+
             function getIgnoredDirs()
             {
                 var dirs = [autoprojectsDirectory, qbs.installRoot];
@@ -108,26 +183,7 @@ Project
 
             function scanProjects(dir)
             {
-                var found = [];
-                var dirs = File.directoryEntries(dir, File.Dirs | File.NoDotAndDotDot);
-                for(var i in dirs)
-                {
-                    var d = dirs[i];
-                    if(ignoredDirs.contains(d))
-                        continue;
-
-                    if(!additionalDirs.contains(d))
-                    {
-                        if(found.contains(d))
-                            found.remove(d);
-                        else
-                        {
-                            found.push(d);
-                        }
-                    }
-
-
-                }
+                var projectRoots = getProjectRoots(rootDir);
             }
 
             function scan(dir)
@@ -137,7 +193,7 @@ Project
 
             var ignoredDirs = getIgnoredDirs();
             var additionalDirs = getAdditionalDirs();
-            var foundProjects = scan(rootDirectory);
+            var foundProjects = scan(rootDir);
             projects = foundProjects;
         }
     }
