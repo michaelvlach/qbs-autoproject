@@ -3,7 +3,7 @@ import qbs
 Project
 {
     name: "FlatProject"
-    property path targetDir: [qbs.targetOS, qbs.architecture, qbs.toolchain.join("-")].join("-")
+    property path targetDir: [qbs.targetOS, qbs.toolchain.join("-")].join("-")
 
     DynamicLibrary
     {
