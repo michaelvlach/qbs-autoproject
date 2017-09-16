@@ -14,7 +14,7 @@ HTML.headerstyles               = "<link rel=\"stylesheet\" type=\"text/css\" hr
 
 qhp.projects                    = FlatProject
 qhp.FlatProject.file            = FlatProject.qhp
-qhp.FlatProject.namespace       = cz.agnesoft.flatproject.1.0
+qhp.FlatProject.namespace       = org.examples.flatproject.1.0
 qhp.FlatProject.virtualFolder   = flatproject
 qhp.FlatProject.indexTitle      = FlatProject Reference Documentation
 qhp.FlatProject.indexRoot       = FlatProject
