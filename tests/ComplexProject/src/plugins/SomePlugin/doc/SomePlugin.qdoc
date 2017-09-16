@@ -1,0 +1,13 @@
+/*!
+\class SomePlugin
+\inmodule TidyProject
+\brief The \c SomePlugin implements SomePluginInterface
+
+Allows the user to print arbitrary message.
+*/
+
+/*!
+\fn void SomePlugin::printMessage(const char *message) const
+
+Prints \a message.
+*/

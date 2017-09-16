@@ -1,0 +1,12 @@
+/*!
+\page TidyProject
+\index
+
+Tidy is a demonstrative project for \c qbs-autoproject detection of projects with tidy structure.
+*/
+
+/*!
+\module TidyProject
+
+TidyProject module for all project classes
+*/

@@ -1,0 +1,22 @@
+headerdirs                     += ..
+sourcedirs                     += ..
+headers.fileextensions         += *.h
+sources.fileextensions         += *.qdoc *.cpp
+generateindex                   = true
+syntaxhighlighting              = true
+version                         = 1.0
+
+Cpp.ignoretokens               += [[maybe_unused]] \
+                                  LIBRARY_SHARED \
+                                  OTHERLIBRARY_SHARED
+
+HTML.stylesheets                = $QTDIR/doc/global/template/style/offline.css
+HTML.headerstyles               = "<link rel=\"stylesheet\" type=\"text/css\" href=\"style/offline.css\" />\n"
+
+qhp.projects                    = TidyProject
+qhp.TidyProject.file            = TidyProject.qhp
+qhp.TidyProject.namespace       = org.examples.tidyproject.1.0
+qhp.TidyProject.virtualFolder   = tidyproject
+qhp.TidyProject.indexTitle      = TidyProject Reference Documentation
+qhp.TidyProject.indexRoot       = TidyProject
+qhp.extraFiles                 += style/offline.css
