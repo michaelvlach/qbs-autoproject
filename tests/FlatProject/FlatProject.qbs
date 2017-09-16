@@ -3,49 +3,88 @@ import qbs
 Project
 {
     name: "FlatProject"
+    id: flatproject
     property path targetDir: [qbs.targetOS, qbs.toolchain.join("-")].join("-")
 
-    DynamicLibrary
+    Project
     {
-        Export
+        DynamicLibrary
         {
-            Depends { name: "cpp" }
-            cpp.includePaths: ["."]
-        }
+            Export
+            {
+                Depends { name: "cpp" }
+                Depends { name: "Qt.core" }
+                cpp.includePaths: ["."]
+            }
 
-        name: "OtherLibrary"
-        Depends { name: "cpp" }
-        cpp.includePaths: ["."]
-        files: ["OtherLibrary.h", "OtherLibrary.cpp"]
-
-        Group
-        {
-            qbs.install: true
-            qbs.installDir: project.targetDir
-            fileTagsFilter: "dynamiclibrary"
-        }
-    }
-
-    DynamicLibrary
-    {
-        Export
-        {
+            name: "Library"
             Depends { name: "cpp" }
             Depends { name: "Qt.core" }
             cpp.includePaths: ["."]
+            files: ["Library.h", "Library.cpp"]
+
+            Group
+            {
+                qbs.install: true
+                qbs.installDir: flatproject.targetDir
+                fileTagsFilter: "dynamiclibrary"
+            }
         }
 
-        name: "Library"
-        Depends { name: "cpp" }
-        Depends { name: "Qt.core" }
-        cpp.includePaths: ["."]
-        files: ["Library.h", "Library.cpp"]
-
-        Group
+        QtApplication
         {
-            qbs.install: true
-            qbs.installDir: project.targetDir
-            fileTagsFilter: "dynamiclibrary"
+            Depends { name: "Library" }
+            Depends { name: "Qt.testlib" }
+
+            name: "LibraryTest"
+            files: ["LibraryTest.cpp"]
+
+            Group
+            {
+                qbs.install: true
+                qbs.installDir: flatproject.targetDir
+                fileTagsFilter: "application"
+            }
+        }
+    }
+
+    Project
+    {
+        DynamicLibrary
+        {
+            Export
+            {
+                Depends { name: "cpp" }
+                cpp.includePaths: ["."]
+            }
+
+            name: "OtherLibrary"
+            Depends { name: "cpp" }
+            cpp.includePaths: ["."]
+            files: ["OtherLibrary.h", "OtherLibrary.cpp"]
+
+            Group
+            {
+                qbs.install: true
+                qbs.installDir: flatproject.targetDir
+                fileTagsFilter: "dynamiclibrary"
+            }
+        }
+
+        QtApplication
+        {
+            Depends { name: "OtherLibrary" }
+            Depends { name: "Qt.testlib" }
+
+            name: "OtherLibraryTest"
+            files: ["OtherLibraryTest.cpp"]
+
+            Group
+            {
+                qbs.install: true
+                qbs.installDir: flatproject.targetDir
+                fileTagsFilter: "application"
+            }
         }
     }
 
@@ -61,7 +100,7 @@ Project
         Group
         {
             qbs.install: true
-            qbs.installDir: project.targetDir
+            qbs.installDir: flatproject.targetDir
             fileTagsFilter: "application"
         }
     }
