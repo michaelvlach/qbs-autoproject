@@ -1,12 +1,12 @@
 /*!
-\page TidyProject
+\page ComplexProject
 \index
 
-Tidy is a demonstrative project for \c qbs-autoproject detection of projects with tidy structure.
+ComplexProject is a demonstrative project for \c qbs-autoproject detection of projects with complex structure.
 */
 
 /*!
-\module TidyProject
+\module ComplexProject
 
-TidyProject module for all project classes
+ComplexProject module for all project classes
 */

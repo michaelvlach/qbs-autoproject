@@ -1,6 +1,6 @@
 /*!
 \class Library
-\inmodule TidyProject
+\inmodule ComplexProject
 \brief The \c Library class prints messages
 
 Prints messages using QDebug.

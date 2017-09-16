@@ -2,7 +2,7 @@ import qbs
 
 Project
 {
-    name: "TidyProject"
+    name: "ComplexProject"
     id: tidyproject
     property path targetDir: [qbs.targetOS, qbs.toolchain.join("-")].join("-")
 
@@ -218,7 +218,7 @@ Project
         builtByDefault: false
         type: "qch"
         name: "Documentation"
-        files: ["doc/TidyProject.qdoc",
+        files: ["doc/ComplexProject.qdoc",
                 "doc/SomePluginInterface.qdoc",
                 "src/apps/Application/doc/Application.qdoc",
                 "src/libs/Library/doc/Library.qdoc",

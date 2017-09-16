@@ -1,6 +1,6 @@
 /*!
 \fn int printMessage()
-\inmodule TidyProject
+\inmodule ComplexProject
 
 Prints "Hello world" and returns \c 0.
 */

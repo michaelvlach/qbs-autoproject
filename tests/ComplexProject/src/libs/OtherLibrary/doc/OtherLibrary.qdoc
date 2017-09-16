@@ -1,6 +1,6 @@
 /*!
 \class OtherLibrary
-\inmodule TidyProject
+\inmodule ComplexProject
 \brief The \c OtherLibrary class is a message holder
 
 Holds a message.

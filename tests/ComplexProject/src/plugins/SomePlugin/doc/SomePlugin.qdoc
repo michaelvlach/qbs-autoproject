@@ -1,6 +1,6 @@
 /*!
 \class SomePlugin
-\inmodule TidyProject
+\inmodule ComplexProject
 \brief The \c SomePlugin implements SomePluginInterface
 
 Allows the user to print arbitrary message.
