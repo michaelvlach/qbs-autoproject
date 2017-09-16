@@ -7,5 +7,6 @@ FlatProject is a demonstrative project for \c qbs-autoproject detection of proje
 
 /*!
 \module FlatProject
+
 FlatProject module for all project classes
 */
