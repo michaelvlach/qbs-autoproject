@@ -57,6 +57,7 @@ Project
         name: "FlatProject"
         files: ["main.cpp"]
         cpp.cxxLanguageVersion: "c++1z"
+
         Group
         {
             qbs.install: true
