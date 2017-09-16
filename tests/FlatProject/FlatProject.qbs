@@ -8,6 +8,8 @@ Project
 
     Project
     {
+        name: "Library"
+
         DynamicLibrary
         {
             Export
@@ -50,6 +52,8 @@ Project
 
     Project
     {
+        name: "OtherLibrary"
+
         DynamicLibrary
         {
             Export
