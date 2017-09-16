@@ -90,16 +90,13 @@ Project
 
             function getSubDirsRecursively(dir)
             {
-                var dirs = [];
+                var dirs = !isIgnored(dir) && !isAdditional(dir) ? [dir] : [];
                 var subdirs = getSubDirs(dir);
                 for(var i in subdirs)
                 {
                     var subdir = makePath(dir, subdirs[i]);
-                    if(!isIgnored(subdir) && !isAdditional(subdir))
-                    {
-                        dirs.push(subdir);
+                    if(!isIgnored(subdir))
                         dirs = dirs.concat(getSubDirsRecursively(subdir));
-                    }
                 }
                 return dirs;
             }
@@ -126,10 +123,10 @@ Project
                     var ignoredDir = ignoredDirs[i];
                     if(FileInfo.isAbsolutePath(ignoredDir))
                     {
-                        if(element != ignoredDir)
+                        if(dir != ignoredDir)
                             return true;
                     }
-                    else if(element.endsWith("/" + ignoredDir))
+                    else if(dir.endsWith("/" + ignoredDir))
                         return true;
                 }
 

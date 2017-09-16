@@ -1,0 +1,11 @@
+/*!
+\page FlatProject
+\index
+
+FlatProject is a demonstrative project for \c qbs-autoproject detection of projects without any structure.
+*/
+
+/*!
+\module FlatProject
+FlatProject module for all project classes
+*/
