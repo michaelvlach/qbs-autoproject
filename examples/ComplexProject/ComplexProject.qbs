@@ -132,7 +132,7 @@ Project
             
             QtApplication
             {
-                Depends { name: "Application" }
+                Depends { name: "Application"; cpp.link: false }
                 Depends { name: "Qt.testlib" }
 
                 name: "ApplicationTest"
@@ -163,6 +163,7 @@ Project
                 {
                     Depends { name: "cpp" }
                     Depends { name: "Qt.core" }
+                    Depends { name: "Library"; cpp.link: false }
                     Depends { name: "Interfaces" }
                 }
             
