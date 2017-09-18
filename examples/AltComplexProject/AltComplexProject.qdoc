@@ -1,0 +1,12 @@
+/*!
+\page AltComplexProject
+\index
+
+ComplexProject is a demonstrative project for \c qbs-autoproject detection of projects with complex structure.
+*/
+
+/*!
+\module AltComplexProject
+
+ComplexProject module for all project classes
+*/

@@ -1,0 +1,6 @@
+/*!
+\fn int printMessage()
+\inmodule AltComplexProject
+
+Prints "Hello world" and returns \c 0.
+*/
