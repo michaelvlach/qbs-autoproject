@@ -6,8 +6,7 @@ generateindex                   = true
 syntaxhighlighting              = true
 version                         = 1.0
 
-Cpp.ignoretokens               += [[maybe_unused]] \
-                                  LIBRARY_SHARED \
+Cpp.ignoretokens               += LIBRARY_SHARED \
                                   OTHERLIBRARY_SHARED
 
 HTML.stylesheets                = $QTDIR/doc/global/template/style/offline.css
