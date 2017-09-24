@@ -1,0 +1,13 @@
+/*!
+\class OtherLibrary
+\inmodule FlatProject
+\brief The \c OtherLibrary class is a message holder
+
+Holds a message.
+*/
+
+/*!
+\fn const char *OtherLibrary::message() const
+
+Returns  \c "Hello world" message;
+*/

@@ -8,58 +8,45 @@ Project
     name: FileInfo.baseName(sourceDirectory)
     id: autoproject
 
-    //-------------//
-    //CONFIGURATION//
-    //-------------//
-    property path pathToRoot: "examples/FlatProject"
+    //------------//
+    //ONFIGURATION//
+    //------------//
+    property path autoprojectFileDirectory: "" //relative to desired project root
     property path autoprojectsDirectory: ".autoproject"
-    property path targetDir: [qbs.targetOS, qbs.architecture, qbs.toolchain.join("-")].join("-")
-    property stringList additionalProjectDirs: ["src", "include", "doc", "test", "private", "resources"]
-    property stringList headerExtensions: ["h"]
-    property stringList sourceExtensions: ["cpp"]
+    property stringList sourceExtensions: ["cpp", "h"]
     property path qtIncludeDirectory: "C:/Qt/5.10.0/msvc2017_64/include/"
-    property stringList ignoredDirs: [autoprojectsDirectory, "build", "bin"]
-    property stringList ignoredFiles: [".gitignore", "*.qbs", "*.user", "LICENSE", "*.md", "*.txt"]
+    property stringList ignoredDirectories: []
 
-    property var productRules:
+    property var rules:
     {
-        //files: [], additionalFiles: [], additionalDirectories: [], regex: "", item: ""
-        //In-built items: CppApplication, DynamicLibrary, StaticLibrary, Product, Documentation
         return {
-            Test:       { files: ["*Test.cpp"], additionalFiles: ["*Test.h", "*Mock.h"], additionalDirectories: ["mocks"], item: "CppApplication" },
-            DLib:       { files: ["*.h"], regex: "class.*SHARED ", additionalFiles: ["*.cpp", "*.h"], item: "DynamicLibrary" },
-            App:        { files: ["main.cpp"], additionalFiles: ["*.cpp", "*.h"], item: "CppApplication" },
-            Interfaces: { files: ["*.h"], regex: "class.*Interface|__declspec\\(dllexport\\)", additionalFiles: ["*.h"], item: "Product" },
-            DocGen:     { files: ["*.qdocconf"], item: "Documentation" },
-            Docs:       { files: ["*.qdoc"], item: "Product" },
-            SLib:       { additionalFiles: ["*.cpp", "*.h"], item: "StaticLibrary" }
+            TestApplication: { directories: ["test"],                      patterns: []             },
+            Application:     { directories: ["", "src", "private"],        patterns: ["main.cpp"]   },
+            SharedLibrary:   { directories: ["src", "private", "include"], patterns: []             },
+            Interfaces:      { directories: [],                            patterns: [".h"]         },
+            DocGen:          { directories: ["doc"],                       patterns: [".qdocconf"]  },
+            Doc:             { directories: ["doc"],                       patterns: [".qdoc"]      }
         };
     }
 
     property var modules:
     {
-        //includeDirectory: "", files: []
         return {
-            cinject: { files: ["cinject.h"] },
-            cppcommandline: { files: ["cppcommandline.h"] },
-            qtestbdd: { files: ["qtestbdd.h"] },
-            gtestbdd: { files: ["gtestbdd.h"] },
-            gtest: { files: ["gtest/gtest.h"] }
+            cinject:        { includeDirectory: "", files: ["cinject.h"] },
+            cppcommandline: { includeDirectory: "", files: ["cppcommandline.h"] },
+            qtestbdd:       { includeDirectory: "", files: ["qtestbdd.h"] },
+            gtestbdd:       { includeDirectory: "", files: ["gtestbdd.h"] },
+            gtest:          { includeDirectory: "", files: ["gtest/gtest.h"] }
         };
     }
+
+    //Advanced
+    property path rootDir: sourceDirectory.replace(autoprojectFileDirectory, "")
+    property path targetDir: [qbs.targetOS, qbs.architecture, qbs.toolchain.join("-")].join("-")
 
     //--------------------//
     //END OF CONFIGURATION//
     //--------------------//
-    property path root:
-    {
-        if(FileInfo.isAbsolutePath(pathToRoot))
-            return pathToRoot;
-        else if(sourceDirectory.contains(pathToRoot))
-            return sourceDirectory.replace(pathToRoot, "");
-        else
-            return FileInfo.joinPaths(sourceDirectory, pathToRoot);
-    }
 
     Probe
     {
@@ -91,97 +78,120 @@ Project
 
         configure:
         {
-            function getProduct(project, product)
+            function makePath(dir, subdir)
             {
-                if(!project["products"][product])
-                    project["products"][product] = {files: []};
-
-                return project["products"][product];
+                return FileInfo.joinPaths(dir, subdir);
             }
 
-            function readFile(file)
+            function getSubDirs(dir)
             {
-                return TextFile(file).readAll();
+                return File.directoryEntries(dir, File.Dirs | File.NoDotAndDotDot);
             }
 
-            function hasMatch(file, pattern)
+            function getSubDirsRecursively(dir)
             {
-                return readFile(file).search(pattern) != -1;
+                var dirs = !isIgnored(dir) && !isAdditional(dir) ? [dir] : [];
+                var subdirs = getSubDirs(dir);
+                for(var i in subdirs)
+                {
+                    var subdir = makePath(dir, subdirs[i]);
+                    if(!isIgnored(subdir))
+                        dirs = dirs.concat(getSubDirsRecursively(subdir));
+                }
+                return dirs;
+            }
+
+            function removeDuplicateBaseNames(list)
+            {
+                var baseNames = [];
+                list.forEach(function(element)
+                {
+                    this.push(FileInfo.baseName(element));
+                }, baseNames);
+
+                return list.filter(function(element)
+                {
+                    var baseName = FileInfo.baseName(element);
+                    return this.indexOf(baseName) == this.lastIndexOf(baseName);
+                }, baseNames);
+            }
+
+            function isIgnored(dir)
+            {
+                for(var i in ignoredDirs)
+                {
+                    var ignoredDir = ignoredDirs[i];
+                    if(FileInfo.isAbsolutePath(ignoredDir))
+                    {
+                        if(dir != ignoredDir)
+                            return true;
+                    }
+                    else if(dir.endsWith("/" + ignoredDir))
+                        return true;
+                }
+
+                return false;
+            }
+
+            function isAdditional(dir)
+            {
+                for(var i in additionalDirs)
+                {
+                    var additionalDir = additionalDirs[i];
+                    if(element.endsWith("/" + additionalDir))
+                        return true;
+                }
+
+                return false;
+            }
+
+            function getProjectRoots(root)
+            {
+                return removeDuplicateBaseNames(getSubDirsRecursively(root));
+            }
+
+            function getIgnoredDirs()
+            {
+                var dirs = [autoprojectsDirectory, qbs.installRoot];
+                for(var i in modules)
+                {
+                    var moduleDirectory = modules[i]["includeDirectory"];
+                    if(!dirs.contains(moduleDirectory))
+                        dirs.push(moduleDirectory);
+                }
+                return dirs;
+            }
+
+            function getAdditionalDirs()
+            {
+                var dirs = [];
+                for(var i in rules)
+                {
+                    var ruleDirs = rules[i]["directories"];
+                    for(var j in ruleDirs)
+                    {
+                        var dir = ruleDirs[j];
+                        if(dir && !dirs.contains(dir))
+                            dirs.push(dir);
+                    }
+                }
+                return dirs;
+            }
+
+            function scanProjects(dir)
+            {
+                var projectRoots = getProjectRoots(rootDir);
             }
 
             function scan(dir)
             {
-                var files = File.directoryEntries(dir, File.Files).filter(function(filename)
-                {
-                    for(var i in ignoredFiles)
-                        if(ignoredFiles[i].startsWith("*") ? filename.endsWith(ignoredFiles[i].substring(1)) : filename == ignoredFiles[i])
-                            return false;
-                    return true;
-                });
-
-                var project = { name: FileInfo.baseName(dir), path: dir, products: {} };
-
-                for(var i in productRules)
-                {
-                    var rule = productRules[i];
-                    if(!rule["files"] && !project["products"][i])
-                        project["products"][i] = {files: []};
-                    else
-                    {
-                        files = files.filter(function(filename)
-                        {
-                            for(var j in rule["files"])
-                            {
-                                var pattern = rule["files"][j];
-                                if(pattern.startsWith("*") ? filename.endsWith(pattern.substring(1)) : filename == pattern)
-                                {
-                                    if(rule["regex"] && !hasMatch(FileInfo.joinPaths(dir, filename), rule["regex"]))
-                                        return true;
-
-                                    var product = getProduct(project, i);
-                                    product["files"].push(FileInfo.joinPaths(dir, filename));
-                                    return false;
-                                }
-                                else
-                                    return true;
-                            }
-                        });
-                    }
-                }
-
-                if(files)
-                {
-                    for(var i in project["products"])
-                    {
-                        files = files.filter(function(filename)
-                        {
-                            for(var j in productRules[i]["additionalFiles"])
-                            {
-                                var pattern = productRules[i]["additionalFiles"][j];
-                                if(pattern.startsWith("*") ? filename.endsWith(pattern.substring(1)) : filename == pattern)
-                                {
-                                    project["products"][i]["files"].push(FileInfo.joinPaths(dir, filename));
-                                    return false;
-                                }
-                                else
-                                    return true;
-                            }
-                        });
-                    }
-                }
-
-                return project;
+                var foundProjects = scanProjects(dir);
             }
 
-            var proj = scan(root);
-
-            console.info("Name: " + proj["name"]);
-            console.info("Name: " + proj["path"]);
-
-            for(var i in proj["products"])
-            {
-                console.info(i + ": " + proj["products"][i]["files"]);
-            }
+            var ignoredDirs = getIgnoredDirs();
+            var additionalDirs = getAdditionalDirs();
+            var foundProjects = scan(rootDir);
+            projects = foundProjects;
         }
     }
 
