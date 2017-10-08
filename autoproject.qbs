@@ -7,7 +7,7 @@ Project
 {
     //CONFIGURATION
     name: "autoproject"
-    property string projectRoot: "examples/ComplexProject"
+    property string projectRoot: "examples"
     property string installDir: qbs.targetOS + "-" + qbs.toolchain.join("-")
     property string autoprojectDir: ".autoproject"
     property string qtIncludeDir: "C:/Qt/5.10.0/msvc2017_64/include"
@@ -39,10 +39,11 @@ Project
     Probe
     {
         id: scanner
-        condition: false
+//        condition: false
         property string rootProjectName: ""
         property stringList references: []
-        property string ignoreRegExp: "(\/|)" + autoprojectDir + "\Z|" + ignorePattern;
+        property string ignoreRegExp: "(\/|)" + autoprojectDir + "\Z|" + ignorePattern
+        property path root: FileInfo.joinPaths(sourceDirectory, projectRoot)
 
         configure:
         {
@@ -63,12 +64,16 @@ Project
 
             function getFiles(dir)
             {
-                return File.directoryEntries(dir, File.Files).filter(filterIgnored);
+                var files = File.directoryEntries(dir, File.Files).filter(filterIgnored);
+                files.forEach(appendPath, dir);
+                return files;
             }
 
             function getDirs(dir)
             {
-                return File.directoryEntries(dir, File.Dirs | File.NoDotAndDotDot).filter(filterIgnored);
+                var dirs = File.directoryEntries(dir, File.Dirs | File.NoDotAndDotDot).filter(filterIgnored);
+                dirs.forEach(appendPath, dir);
+                return dirs;
             }
 
             function makePath(dir, file)
@@ -81,87 +86,136 @@ Project
                 return { name: FileInfo.baseName(dir), path: dir, products: [], projects: [] };
             }
 
-            function createProduct(dir)
+            function createProduct(item, dir)
             {
-                return { item: "", path: dir, sources: [] }
+                return { item: item, path: dir, sources: getFiles(dir).filter(filterSources) };
+            }
+
+            function scan(project, dir)
+            {
+                var currentProject = project;
+                var item = itemFromDir(dir);
+                if(item)
+                    currentProject["products"].push(createProduct(item, dir));
+                else
+                {
+                    if(project["path"] != dir)
+                    {
+                        currentProject = createProject(dir);
+                        project["projects"].push(currentProject);
+                    }
+
+                    item = findItemInFiles(getFiles(dir));
+                    if(item)
+                        currentProject["products"].push(createProduct(item, dir));
+                }
+
+                var dirs = getDirs(dir);
+                for(var i in dirs)
+                    scan(currentProject, dirs[i]);
+            }
+
+            function itemFromDir(dir)
+            {
+                for(var item in items)
+                {
+                    if(testName(item, dir))
+                        return item;
+                }
+
+                return "";
+            }
+
+            function testFileContent(item, file)
+            {
+                return RegExp(items[item]["contentPattern"]).test(TextFile(file).readAll());
+            }
+
+            function testContent(item, file)
+            {
+                return items[item]["contentPattern"] ? testFileContent(item, file) : false;
+            }
+
+            function testName(item, file)
+            {
+                return RegExp(items[item]["pattern"]).test(file)
+            }
+
+            function testFileForItem(item, file)
+            {
+                return testName(item, file) && testContent(item, file);
+            }
+
+            function testFilesForItem(item, files)
+            {
+                for(var i in files)
+                {
+                    if(testFileForItem(item, files[i]))
+                        return true;
+                }
+
+                return false;
+            }
+
+            function findItemInFiles(files)
+            {
+                for(var item in items)
+                {
+                    if(testFilesForItem(item, files))
+                        return item;
+                }
+
+                return "";
             }
 
             function write(project)
             {
-                var file = TextFile(makePath(autoprojectDir, FileInfo.baseName(project["path"]) + ".qbs"), TextFile.WriteOnly);
+                var file = TextFile(FileInfo.joinPaths(sourceDirectory, autoprojectDir, FileInfo.baseName(project["path"]) + ".qbs"), TextFile.WriteOnly);
                 file.writeLine("import qbs");
                 file.writeLine("");
-                writeProject(file, project);
+                writeProject(file, project, "");
                 file.close();
             }
 
-            function writeProject(file, project)
+            function writeProject(file, project, indent)
             {
-                console.info(project["products"].length);
-                console.info(project["projects"].length);
+                file.writeLine(indent + "Project");
+                file.writeLine(indent + "{");
+                file.writeLine(indent + "    name: \"" + project["name"] + "\"");
+                file.writeLine(indent + "    property string target: project.targetDir");
 
-                file.writeLine("Project");
-                file.writeLine("{");
-                file.writeLine("    name: \"" + project["name"] + "\"");
-                file.writeLine("    property string target: project.targetDir");
-
-//                for(var i in project["products"])
-//                {
-//                    file.writeLine("    " + project["products"][i]["item"]);
-//                    file.writeLine("    {");
-//                    file.writeLine("        files: [\"" + project["products"][i]["files"].join("\", \"") + "\"]");
-//                    file.writeLine("    }");
-//                }
-
-                file.writeLine("}");
-
-            }
-
-            function getProduct(dir)
-            {
-                var product = createProduct(dir);
-                var files = getFiles(dir);
-
-                for(var item in items)
+                for(var i in project["products"])
                 {
-                    for(var i in files)
-                    {
-                        if(RegExp(items[item]["pattern"]).test(dir)
-                            || (RegExp(items[item]["pattern"]).test(files[i])
-                                && (!items[item]["contentPattern"]
-                                    ||  RegExp(items[item]["contentPattern"].test(TextFile(makePath(dir, files[i])).readAll())))))
-                        {
-                            product["item"] = item;
-                            product["sources"] = files.filter(filterSources);
-                            return product;
-                        }
-                    }
+                    file.writeLine(indent + "    " + project["products"][i]["item"]);
+                    file.writeLine(indent + "    {");
+                    file.writeLine(indent + "        files: [\"" + project["products"][i]["sources"].join("\", \"") + "\"]");
+                    file.writeLine(indent + "    }");
                 }
-                return product;
+
+                for(var i in project["projects"])
+                    writeProject(file, project["projects"][i], indent + "    ");
+
+
+
+                file.writeLine(indent + "}");
+
             }
 
-            function scan(dir)
+            function print(project, indent)
             {
-                var project = createProject(dir);
-                var product = getProduct(dir);
-                if(product["item"])
-                    project["products"].push(product);
-                var dirs = [dir].concat(getDirs(dir).forEach(appendPath, dir));
-
-                for(var i in dirs)
-                {
-                    var subdir = dirs[i];
-                    product = getProduct(subdir);
-                    if(product["item"])
-                        project["products"].push(product);
-                    else
-                        project["projects"].push(scan(dir));
-                }
-                return project;
+                console.info("PROJECT: " + project["name"]);
+                console.info("products:");
+                for(var i in project["products"])
+                    console.info(indent + project["products"][i]["item"] + " (" + project["products"][i]["path"] + "): " + project["products"][i]["sources"].join(", "));
+                for(var i in project["projects"])
+                    print(project["projects"][i], indent + "  ");
             }
 
-            var project = scan(makePath(sourceDirectory, projectRoot));
+            var project = createProject(root);
+            scan(project, root);
+            print(project, "");
             write(project);
+
             rootProjectName = project["name"];
             references = [ FileInfo.joinPaths(sourceDirectory, autoprojectDir, rootProjectName + ".qbs") ];
             console.info("Probe run");

@@ -34,3 +34,4 @@
 # Custom
 build-*
 *.user
+.autoproject/*.qbs
