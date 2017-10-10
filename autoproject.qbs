@@ -14,6 +14,7 @@ Project
     property stringList ignoreList: []
     property string cppSourcesExtension: "cpp"
     property string cppHeadersExtension: "h"
+    property string projectFormat: "tree" //tree(default)|flat
     property var items:
     {
         return {
@@ -48,6 +49,7 @@ Project
 
         configure:
         {
+
             if(!Array.prototype.find)
             {
                 Object.defineProperty(Array.prototype, 'find',
@@ -66,7 +68,8 @@ Project
             function appendPathElements(element, index, array) { array[index] = makePath(this, element); }
             function makePath(dir, file) { return FileInfo.joinPaths(dir, file); }
             function getSourcesInDir(dir) { return getFilesInDir(dir).filter(filterNonCpp); }
-            function createProject(dir) { var proj = { name: FileInfo.baseName(dir), path: dir, product: getProduct(dir), projects: getSubProjects(dir) }; return proj["product"] || proj["projects"] ? proj : {}; }
+            function createTreeProject(dir) { var proj = { name: FileInfo.baseName(dir), path: dir, product: getProduct(dir), projects: getSubProjects(dir) }; return proj["product"] || proj["projects"] ? proj : {}; }
+            function createFlatProject(dir) { return { name: FileInfo.baseName(dir), path: dir, products: getProducts(dir) }; }
             function createProduct(item, dir, sources) { return { item: item, path: dir, sources: sources }; }
             function appendPathToArray(array, dir) { array.forEach(appendPathElements, dir); return array; }
             function filterIgnoredFromArray(array) { return array.filter(filterIgnored); }
@@ -87,8 +90,10 @@ Project
             function getItem(dir) { var item = getItemFromDir(dir); return item ? item : getItemFromFiles(getFilesInDir(dir)); }
             function getProduct(dir) { var item = getItem(dir); return item ? createProduct(item, dir, getSourcesInDir(dir)) : {} };
             function getSubProject(subdir) { return createProject(subdir); }
-            function appendSubProject(subdir) { var proj = createProject(subdir); if(proj) this.push(createProject(subdir)); }
+            function appendSubProject(subdir) { var proj = createTreeProject(subdir); if(proj) this.push(createTreeProject(subdir)); }
             function getSubProjects(dir) { var subProjects = []; getSubdirs(dir).forEach(appendSubProject, subProjects); return subProjects; }
+            function appendProducts(subdir) { var products = getProducts(subdir); for(var i in products) this.push(products[i]) }
+            function getProducts(dir) { var product = getProduct(dir); var products = product["item"] ? [product] : []; getSubdirs(dir).forEach(appendProducts, products); return products; }
 
             function write(proj)
             {
@@ -99,23 +104,28 @@ Project
                 file.close();
             }
 
-            function writeProject(file, project, indent)
+            function writeProject(file, proj, indent)
             {
                 file.writeLine(indent + "Project");
                 file.writeLine(indent + "{");
-                file.writeLine(indent + "    name: \"" + project["name"] + "\"");
+                file.writeLine(indent + "    name: \"" + proj["name"] + "\"");
                 file.writeLine(indent + "    property string target: project.installDirectory");
 
-                if(project["product"]["item"])
+                if(proj["product"])
                 {
-                    file.writeLine(indent + "    " + project["product"]["item"]);
-                    file.writeLine(indent + "    {");
-                    file.writeLine(indent + "        path: \"" + project["product"]["path"] + "\"");
-                    file.writeLine(indent + "    }");
+                    for(var i in proj["projects"])
+                        writeProject(file, proj["projects"][i], indent + "    ");
                 }
-
-                for(var i in project["projects"])
-                    writeProject(file, project["projects"][i], indent + "    ");
+                else
+                {
+                    for(var i in proj["products"])
+                    {
+                        file.writeLine(indent + "    " + proj["products"][i]["item"]);
+                        file.writeLine(indent + "    {");
+                        file.writeLine(indent + "        path: \"" + proj["products"][i]["path"] + "\"");
+                        file.writeLine(indent + "    }");
+                    }
+                }
 
                 file.writeLine(indent + "}");
             }
@@ -123,13 +133,21 @@ Project
             function print(proj, indent)
             {
                 console.info("PROJECT: " + proj["name"] + " (" + proj["path"] + ")");
-                if(proj["product"]["item"])
-                    console.info("product: " + proj["product"]["item"] + " (" + proj["product"]["path"] + "): " + proj["product"]["sources"]);
-                for(var i in proj["projects"])
-                    print(proj["projects"][i], indent + "  ");
+                if(proj["product"])
+                {
+                    if(proj["product"]["item"])
+                        console.info("product: " + proj["product"]["item"] + " (" + proj["product"]["path"] + "): " + proj["product"]["sources"]);
+                    for(var i in proj["projects"])
+                        print(proj["projects"][i], indent + "  ");
+                }
+                else
+                {
+                    for(var i in proj["products"])
+                        console.info("+" + proj["products"][i]["item"] + " (" + proj["products"][i]["path"] + "): " + proj["products"][i]["sources"]);
+                }
             }
 
-            var rootProject = createProject(rootPath);
+            var rootProject = (projectFormat == "tree" ? createTreeProject(rootPath) : createFlatProject(rootPath));
             print(rootProject, "");
             write(rootProject);
 
