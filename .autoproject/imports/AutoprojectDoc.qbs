@@ -1,9 +1,20 @@
 import qbs
+import qbs.FileInfo
 
 Product
 {
+    property string path: ""
+    name:
+    {
+        var dir = FileInfo.baseName(path);
+        if(dir == "doc" || dir == "Doc" || dir == "documentation" || dir == "Documentation")
+            return FileInfo.baseName(FileInfo.path(path)) + "Doc";
+        else
+            return dir + "Doc";
+    }
+    
     Depends { name: "Qt"; submodules: [ "core" ]; }
-    name: project.name + "Doc"
+    
     builtByDefault: false
     type: "qch"
 

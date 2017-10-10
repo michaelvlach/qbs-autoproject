@@ -1,7 +1,19 @@
 import qbs
+import qbs.FileInfo
 
 StaticLibrary
 {
+    property string path: ""
+    name:
+    {
+        var dir = FileInfo.baseName(path);
+        if (dir == "lib" || dir == "Lib")
+            return FileInfo.baseName(FileInfo.path(path)) + "Lib";
+        else
+            return dir + "Lib";
+    }
+    targetName: qbs.buildVariant == "debug" ? name + "d" : name
+    
     Export
     {
         Depends { name: "cpp" }
@@ -9,9 +21,6 @@ StaticLibrary
     }
     
     Depends { name: "cpp" }
-
-    name: project.name
-    targetName: qbs.buildVariant == "debug" ? name + "d" : name
     
     Group
     {

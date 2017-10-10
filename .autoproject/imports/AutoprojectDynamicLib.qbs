@@ -1,7 +1,12 @@
 import qbs
+import qbs.FileInfo
 
 DynamicLibrary
 {
+    property string path: ""
+    name: FileInfo.baseName(path)
+    targetName: qbs.buildVariant == "debug" ? name + "d" : name
+    
     Export
     {
         Depends { name: "cpp" }
@@ -9,8 +14,6 @@ DynamicLibrary
     
     Depends { name: "cpp" }    
     cpp.defines: project.name.toUpperCase() + "_LIB"
-    name: project.name + "Lib"
-    targetName: qbs.buildVariant == "debug" ? name + "d" : name
     
     Group
     {

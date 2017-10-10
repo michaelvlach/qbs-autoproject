@@ -107,16 +107,11 @@ Project
                 file.writeLine(indent + "    name: \"" + project["name"] + "\"");
                 file.writeLine(indent + "    property string target: project.installDirectory");
 
-                if(indent == "")
-                    file.writeLine(indent + "    property string parent: name");
-                else
-                    file.writeLine(indent + "    property string parent: project.name");
-
                 if(project["product"]["item"])
                 {
                     file.writeLine(indent + "    " + project["product"]["item"]);
                     file.writeLine(indent + "    {");
-                    file.writeLine(indent + "        files: [\"" + project["product"]["sources"].join("\", \"") + "\"]");
+                    file.writeLine(indent + "        path: \"" + project["product"]["path"] + "\"");
                     file.writeLine(indent + "    }");
                 }
 
