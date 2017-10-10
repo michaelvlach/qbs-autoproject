@@ -66,7 +66,7 @@ Project
             function appendPathElements(element, index, array) { array[index] = makePath(this, element); }
             function makePath(dir, file) { return FileInfo.joinPaths(dir, file); }
             function getSourcesInDir(dir) { return getFilesInDir(dir).filter(filterNonCpp); }
-            function createProject(dir) { return { name: FileInfo.baseName(dir), path: dir, product: getProduct(dir), projects: getSubProjects(dir) }; }
+            function createProject(dir) { var proj = { name: FileInfo.baseName(dir), path: dir, product: getProduct(dir), projects: getSubProjects(dir) }; return proj["product"] || proj["projects"] ? proj : {}; }
             function createProduct(item, dir, sources) { return { item: item, path: dir, sources: sources }; }
             function appendPathToArray(array, dir) { array.forEach(appendPathElements, dir); return array; }
             function filterIgnoredFromArray(array) { return array.filter(filterIgnored); }
@@ -87,9 +87,8 @@ Project
             function getItem(dir) { var item = getItemFromDir(dir); return item ? item : getItemFromFiles(getFilesInDir(dir)); }
             function getProduct(dir) { var item = getItem(dir); return item ? createProduct(item, dir, getSourcesInDir(dir)) : {} };
             function getSubProject(subdir) { return createProject(subdir); }
-            function appendSubProject(subdir) { this.push(createProject(subdir)); }
+            function appendSubProject(subdir) { var proj = createProject(subdir); if(proj) this.push(createProject(subdir)); }
             function getSubProjects(dir) { var subProjects = []; getSubdirs(dir).forEach(appendSubProject, subProjects); return subProjects; }
-
 
             function write(proj)
             {
