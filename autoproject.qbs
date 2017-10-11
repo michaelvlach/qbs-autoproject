@@ -6,7 +6,6 @@ import qbs.TextFile
 Project
 {
     //CONFIGURATION
-    name: "autoproject"
     property string projectRoot: "examples"
     property string installDirectory: qbs.targetOS + "-" + qbs.toolchain.join("-")
     property string autoprojectDirectory: ".autoproject"
@@ -36,6 +35,7 @@ Project
     }
     //END OF CONFIGURATION
 
+    name: "autoproject"
     id: autoproject
 
     Probe
@@ -67,10 +67,10 @@ Project
             function filterNonCpp(element) { return RegExp(cppPattern).test(element); }
             function appendPathElements(element, index, array) { array[index] = makePath(this, element); }
             function makePath(dir, file) { return FileInfo.joinPaths(dir, file); }
-            function getSourcesInDir(dir) { return getFilesInDir(dir).filter(filterNonCpp); }
+            function getSourcesInDir(dir) { return filterIgnoredFromArray(File.directoryEntries(dir, File.Files)).filter(filterNonCpp); }
             function createTreeProject(dir) { var proj = { name: FileInfo.baseName(dir), path: dir, product: getProduct(dir), projects: getSubProjects(dir) }; return proj["product"] || proj["projects"] ? proj : {}; }
             function createFlatProject(dir) { return { name: FileInfo.baseName(dir), path: dir, products: getProducts(dir) }; }
-            function createProduct(item, dir, sources) { return { item: item, path: dir, sources: sources }; }
+            function createProduct(item, dir, sources) { return { item: item, path: dir, sources: sources, dependencies: [], dependants: [] }; }
             function appendPathToArray(array, dir) { array.forEach(appendPathElements, dir); return array; }
             function filterIgnoredFromArray(array) { return array.filter(filterIgnored); }
             function getFilesInDir(dir) { return appendPathToArray(filterIgnoredFromArray(File.directoryEntries(dir, File.Files)), dir); }
@@ -94,6 +94,43 @@ Project
             function getSubProjects(dir) { var subProjects = []; getSubdirs(dir).forEach(appendSubProject, subProjects); return subProjects; }
             function appendProducts(subdir) { var products = getProducts(subdir); for(var i in products) this.push(products[i]) }
             function getProducts(dir) { var product = getProduct(dir); var products = product["item"] ? [product] : []; getSubdirs(dir).forEach(appendProducts, products); return products; }
+            function getProductsFromProject(proj) { var products = []; if(proj["product"]["item"]) products.push(proj["product"]); for(var i in proj["projects"]) products = products.concat(getProductsFromProject(proj["projects"][i])); return products; }
+            function createProductDependencies(product, products) { var includes = getIncludedFiles(product); for(var i in products) tryProductDependency(product, includes, products[i]); }
+            function createDependencies(proj) { var products = getProductsFromProject(proj); for(var i in products) createProductDependencies(products[i], products); }
+            function hasSourceFile(product, file) { return product["sources"].contains(file); }
+            function addDependency(product, dependency) { if(!product["dependencies"].contains(dependency)) product["dependencies"].push(dependency); }
+            function addDependant(product, dependant) { if(!product["dependants"].contains(dependant)) product["dependants"].push(dependant); }
+            function dependProducts(product, dependency) { addDependency(product, dependency); addDependant(dependency, product); }
+            function hasSourceExtension(file) { return element.endsWith("." + cppSourcesExtension); }
+            function isProductHeaderOnly(product) { return !product["sources"].some(hasSourceExtension); }
+            function getIncludedFiles(product)
+            {
+                var includedFiles = {};
+
+                for(var i in product["sources"])
+                {
+                    var sourceFile = product["sources"][i];
+                    var content = TextFile(makePath(product["path"], sourceFile)).readAll();
+                    var regexp = /#include <|\"(.*)\"|>/g
+                    var result = [];
+                    while(result = regexp.exec(content))
+                        includedFiles[result[1]] = true;
+                }
+
+                return Object.keys(includedFiles);
+            }
+
+            function tryProductDependency(product, includes, other)
+            {
+                for(var i in includes)
+                {
+                    if(hasSourceFile(other, includes[i]))
+                    {
+                        dependProducts(product, other);
+                        break;
+                    }
+                }
+            }
 
             function write(proj)
             {
@@ -136,18 +173,28 @@ Project
                 if(proj["product"])
                 {
                     if(proj["product"]["item"])
-                        console.info("product: " + proj["product"]["item"] + " (" + proj["product"]["path"] + "): " + proj["product"]["sources"]);
+                        printProduct(proj["product"]);
                     for(var i in proj["projects"])
                         print(proj["projects"][i], indent + "  ");
                 }
                 else
                 {
                     for(var i in proj["products"])
-                        console.info("+" + proj["products"][i]["item"] + " (" + proj["products"][i]["path"] + "): " + proj["products"][i]["sources"]);
+                        printProduct(proj["products"][i]);
                 }
             }
 
+            function printProduct(product)
+            {
+                console.info("product: " + product["item"] + " (" + product["path"] + "): " + product["sources"]);
+                for(var i in product["dependencies"])
+                    console.info("+" + product["dependencies"][i]["path"]);
+                for(var i in product["dependants"])
+                    console.info("-" + product["dependants"][i]["path"]);
+            }
+
             var rootProject = (projectFormat == "tree" ? createTreeProject(rootPath) : createFlatProject(rootPath));
+            createDependencies(rootProject);
             print(rootProject, "");
             write(rootProject);
 
