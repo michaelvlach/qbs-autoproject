@@ -4,7 +4,6 @@ import qbs.FileInfo
 DynamicLibrary
 {
     property string path: ""
-    name: FileInfo.baseName(path)
     targetName: qbs.buildVariant == "debug" ? name + "d" : name
     
     Export
