@@ -1,1 +1,1 @@
-Readme
+ComplexProject example for qbs-autoproject

@@ -5,15 +5,24 @@ import qbs.TextFile
 
 Project
 {
+    property var ProjectFormat:
+    {
+        return {
+            Tree: 1,
+            Flat: 2
+        }
+    }
+
     //CONFIGURATION
     property string projectRoot: "examples"
     property string installDirectory: qbs.targetOS + qbs.architecture + "-" + qbs.toolchain.join("-")
     property string autoprojectDirectory: ".autoproject"
     property path qtIncludePath: "C:/Qt/5.10.0/msvc2017_64/include"
-    property string ignorePattern: "/\.autoproject$"
-    property string cppSourcesExtension: "cpp"
-    property string cppHeadersExtension: "h"
-    property string projectFormat: "flat" //tree|flat
+    property string ignorePattern: "\/.autoproject$"
+    property string additionalDirectoriesPattern: "\/[Ii]nclude$"
+    property string cppSourcesPattern: "\.cpp$"
+    property string cppHeadersPattern: "\.h$"
+    property var projectFormat: ProjectFormat.Tree
     property var items:
     {
         return {
@@ -41,11 +50,11 @@ Project
     Probe
     {
         id: scanner
-//        condition: false
+        condition: true
         property stringList references: []
         property path rootPath: FileInfo.joinPaths(sourceDirectory, projectRoot)
         property path outPath: FileInfo.joinPaths(sourceDirectory, autoprojectDirectory)
-        property string cppPattern: "\.(" + cppSourcesExtension + "|" + cppHeadersExtension + ")$"
+        property string cppPattern: cppSourcesPattern + "|" + cppHeadersPattern
 
         configure:
         {
@@ -344,7 +353,7 @@ Project
 
             function getRootProject()
             {
-                return projectFormat == "tree" ? createTreeProject(rootPath) : createFlatProject(rootPath);
+                return projectFormat == ProjectFormat.Tree ? createTreeProject(rootPath) : createFlatProject(rootPath);
             }
 
             function getIncludedFiles(product)
@@ -414,7 +423,7 @@ Project
             {
                 console.info("PROJECT: " + proj.name + " (" + proj.path + ")");
 
-                if(projectFormat == "tree")
+                if(projectFormat == ProjectFormat.Tree)
                 {
                     for(var i in proj.projects)
                         print(proj.projects[i], indent + "  ");
@@ -426,12 +435,13 @@ Project
 
             function printProduct(product)
             {
-                console.info("product: " + product.name + "(" + product.item + ": " + product.path + ")");
+                console.info(product.item + "(" + product.name + ": " + product.path + ")");
                 for(var i in product.dependencies)
                     console.info("+" + product.dependencies[i].path);
                 for(var i in product.dependants)
                     console.info("-" + product.dependants[i].path);
             }
+
 
             var rootProject = getRootProject();
 //            createDependencies(rootProject);
