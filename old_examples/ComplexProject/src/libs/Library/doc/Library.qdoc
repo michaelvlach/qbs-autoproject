@@ -1,0 +1,13 @@
+/*!
+\class Library
+\inmodule ComplexProject
+\brief The \c Library class prints messages
+
+Prints messages using QDebug.
+*/
+
+/*!
+\fn void Library::printMessage(const char *message) const
+
+Prints informative \a message via qInfo().
+*/
