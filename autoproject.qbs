@@ -354,102 +354,81 @@ Project
 
     Probe
     {
-        id: productbuilder
+        id: productconsolidator
         condition: false
 
         property var scannedRootProject: productscanner.rootProject
         property var additionalDirectoriesPattern: configuration.additionalDirectoriesPattern
+        property var items: configuration.items
+        property var rootProject: {}
+
+        configure:
+        {
+            function getItemNames()
+            {
+                return Object.keys(items);
+            }
+
+            function getHigherItem(item, other)
+            {
+                return getItemNames().indexOf(item) < getItemNames.indexOf(other) ? item : other;
+            }
+
+            function mergeArrays(array, other)
+            {
+                return array.concat(other);
+            }
+
+            function mergeProduct(proj)
+            {
+                this.product.item = getHigherItem(this.product.item, proj.product.item);
+                this.product.paths = mergeArrays(this.product.paths, proj.product.paths);
+                this.product.files = mergeArrays(this.product.files, proj.product.files);
+                proj.product = {};
+            }
+
+            function isAdditionalProject(proj)
+            {
+                return RegExp(additionalDirectoriesPattern).test(proj.path);
+            }
+
+            function consolidateProduct(proj)
+            {
+                if(proj.product)
+                    proj.subprojects.filter(isAdditionalProject).forEach(mergeProduct, {product: proj.product})
+            }
+
+            function consolidateProducts(proj)
+            {
+                proj.subprojects.forEach(consolidateProducts);
+                consolidateProduct(proj);
+                return proj;
+            }
+
+            var proj = consolidateProducts(scannedRootProject);
+            rootProject = proj;
+        }
+    }
+
+    Probe
+    {
+        id: productmerger
+        property var consolidatedRootProject: productconsolidator.rootProject
         property var cppSourcesPattern: configuration.cppSourcesPattern
         property var items: configuration.items
         property var rootProject: {}
 
         configure:
         {
-            function getHigherItem(item, other)
+            function mergeProducts(proj)
             {
-                var keys = Object.keys(items);
-                return keys.indexOf(item) > other ? item : other;
+
             }
 
-            function collapseProduct(proj)
-            {
-                if(proj.product && RegExp(additionalDirectoriesPattern).test(proj.path))
-                {
-                    this.paths = this.paths.concat(proj.product.paths);
-                    this.item = getHigherItem(this.item, proj.product.item);
-                    this.files = proj.product.files;
-                    proj.product = {};
-                }
-            }
-
-            function collapseProducts(proj)
-            {
-                proj.subprojects.forEach(collapseProducts);
-
-                if(proj.product)
-                    proj.subprojects.forEach(collapseProduct, proj.product);
-            }
-
-            function groupProjectsByName(proj)
-            {
-                if(proj.product)
-                {
-                    if(!this[proj.product.name])
-                        this[proj.product.name] = [];
-
-                    this[proj.product.name].push(proj);
-                }
-
-                proj.subprojects.forEach(groupProjectsByName, this);
-            }
-
-            function isSourceFile(file)
-            {
-                return RegExp(cppSourcesPattern).test(file);
-            }
-
-            function mergeProduct(proj)
-            {
-                var item = getHigherItem(this.product.item, proj.product.item);
-
-                if(this.product.files.some(isSourceFile))
-                {
-                    this.product.item = item;
-                    this.product.paths = this.product.paths.concat(proj.product.paths);
-                    this.product.files = this.product.files.concat(proj.product.files);
-                    proj.product = {};
-                }
-                else if(proj.product.files.some(isSourceFile))
-                {
-
-                }
-                else
-                {
-
-                }
-            }
-
-            function mergeProducts(projs)
-            {
-                var product = { name: projs[0].product.name };
-                projs.forEach(mergeProduct, product);
-            }
-
-            function mergeProjects(proj)
-            {
-                var projectGroups = {};
-                groupProjectsByName.call(projectGroups, scannedRootProject);
-
-                for(var name in projectGroups)
-                    mergeProducts(projectGroups[name]);
-            }
-
-            collapseProducts(scannedRootProject);
-            mergeProjects(scannedRootProject);
-            rootProject = scannedRootProject;
+            var proj = mergeProducts(consolidatedRootProject);
+            rootProject = proj;
         }
     }
-
 
 //    Probe
 //    {
