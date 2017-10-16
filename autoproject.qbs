@@ -62,8 +62,13 @@ Project
 
         configure:
         {
-            var root = FileInfo.joinPaths(sourceDirectory, projectRoot);
-            var out = FileInfo.joinPaths(sourceDirectory, autoprojectDirectory);
+            function makePath(path, subpath)
+            {
+                return FileInfo.joinPaths(path, subpath);
+            }
+
+            var root = makePath(sourceDirectory, projectRoot);
+            var out = makePath(sourceDirectory, autoprojectDirectory);
             var cpp = cppSourcesPattern + "|" + cppHeadersPattern;
 
             rootPath = root;
@@ -82,30 +87,53 @@ Project
 
         configure:
         {
+            function makePath(path, subpath)
+            {
+                return FileInfo.joinPaths(path, subpath);
+            }
+
+            function getSubdirs(dir)
+            {
+                return File.directoryEntries(dir, File.Dirs | File.NoDotAndDotDot);
+            }
+
+            function getFiles(dir)
+            {
+                return File.directoryEntries(dir, File.Files);
+            }
+
+            function appendSubmodule(subdir)
+            {
+                this.submodules.push({ name: subdir, files: getFiles(makePath(this.dir, subdir))});
+            }
+
+            function getModuleDir(moduleName)
+            {
+                return modules[moduleName].includePath;
+            }
+
             function getSubmodules(moduleName)
             {
                 var submodules = [];
-                var dir = modules[moduleName].includePath;
-                File.directoryEntries(dir, File.Dirs | File.NoDotAndDotDot).forEach(function(subdir)
-                {
-                    submodules.push({
-                        name: subdir,
-                        files: File.directoryEntries(FileInfo.joinPaths(dir, subdir), File.Files)
-                    });
-                });
+                getSubdirs(getModuleDir(moduleName)).forEach(appendSubmodule, {submodules: submodules, dir: getModuleDir(moduleName)});
+                return submodules;
             }
 
-            var scannedModules = {};
-
-            Object.keys(modules).forEach(function(moduleName)
+            function getModuleNames()
             {
-                scannedModules[moduleName] = {
-                    files: File.directoryEntries(modules[moduleName].includePath, File.Files),
-                    submodules: getSubmodules(moduleName)
-                };
-            });
+                return Object.keys(modules);
+            }
 
+            function scanModule(moduleName)
+            {
+                this.push({files: getFiles(getModuleDir(moduleName)), submodules: getSubmodules(moduleName)});
+            }
+
+            var scannedModules = [];
+            getModuleNames().forEach(scanModule, scannedModules);
             modules = scannedModules;
+
+            console.info("Modules scanned");
         }
     }
 
@@ -119,12 +147,19 @@ Project
 
         configure:
         {
-            function appendPath(array, path)
+            function makePath(path, subpath)
             {
-                array.forEach(function(element, index, array)
-                {
-                    array[index] = FileInfo.joinPaths(path, element);
-                });
+                return FileInfo.joinPaths(path, subpath);
+            }
+
+            function appendPath(element, index, array)
+            {
+                array[index] = makePath(path, element);
+            }
+
+            function appendPathToAll(array, path)
+            {
+                array.forEach(appendPath);
                 return array;
             }
 
@@ -135,23 +170,23 @@ Project
 
             function getSubdirs(dir)
             {
-                return appendPath(File.directoryEntries(dir, File.Dirs | File.NoDotAndDotDot).filter(isNotIgnored), dir);
+                return appendPathToAll(File.directoryEntries(dir, File.Dirs | File.NoDotAndDotDot).filter(isNotIgnored), dir);
             }
 
             function getFiles(dir)
             {
-                return appendPath(File.directoryEntries(dir, File.Files).filter(isNotIgnored), dir);
+                return appendPathToAll(File.directoryEntries(dir, File.Files).filter(isNotIgnored), dir);
+            }
+
+            function appendSubproject(subdir)
+            {
+                this.subprojects.push(getProject(FileInfo.joinPaths(this.dir, subdir)));
             }
 
             function getSubprojects(dir)
             {
                 var subprojects = [];
-
-                getSubdirs(dir).forEach(function(subdir)
-                {
-                    subprojects.push(getProject(FileInfo.joinPaths(dir, subdir)));
-                });
-
+                getSubdirs(dir).forEach(appendSubproject, {subprojects: subprojects, dir: dir});
                 return subprojects;
             }
 
@@ -194,39 +229,99 @@ Project
                 });
             }
 
-            function getItemFromPath(path)
+            function getItemPattern(item)
             {
-                return Object.keys(items).find(function(item)
-                {
-                    return RegExp(items[item].pattern).test(path);
-                });
+                return items[item].pattern;
+            }
+
+            function getItemContentPattern(item)
+            {
+                return items[item].contentPattern;
+            }
+
+            function isPathItem(item)
+            {
+                return RegExp(getItemPattern(item)).test(this.path);
+            }
+
+            function isContentItem(content, item)
+            {
+                return RegExp(getItemContentPattern(item)).test(content);
+            }
+
+            function getItemNames()
+            {
+                return Object.keys(items);
+            }
+
+            function getFileContent(file)
+            {
+                return TextFile(file).readAll();
+            }
+
+            function getItemFromDir(dir)
+            {
+                return getItemNames().find(isPathItem, {path: dir});
+            }
+
+            function isFileContentItem(file)
+            {
+                return !getItemContentPattern(this.item) || isContentItem(getFileContent(file), this.item);
+            }
+
+            function isFileItem(file)
+            {
+                return isPathItem.call({path: file}, this.item) && isFileContentItem({item: this.item}, file);
+            }
+
+            function areFilesItem(item)
+            {
+                return this.files.some(isFileItem, {item: item});
             }
 
             function getItemFromFiles(files)
             {
-                return Object.keys(items).find(function(item)
-                {
-                    return files.some(function(file)
-                    {
-                        return RegExp(items[item].pattern).test(file) && (!items[item].contentPattern || RegExp(items[item].contentPattern).test(TextFile(file).readAll()));
-                    });
-                });
+                return getItemNames().find(areFilesItem, {files: files});
+            }
+
+            function getParentDir(dir)
+            {
+                return FileInfo.path(dir);
+            }
+
+            function getDirName(dir)
+            {
+                return FileInfo.baseName(dir);
+            }
+
+            function getParentDirName(dir)
+            {
+                return getDirName(getParentDir(dir));
+            }
+
+            function prependParentName(path, name)
+            {
+                return getParentDirName(path) + name;
+            }
+
+            function getProductName(proj, item)
+            {
+                return item ? proj.name : prependParentName(proj.path, proj.name);
             }
 
             function getProduct(proj)
             {
-                var item = getItemFromPath(proj.path);
-                var name = proj.name;
+                var item = getItemFromDir(proj.path);
+                var name = getProductName(proj, item);
 
-                if(item)
-                    name = FileInfo.baseName(FileInfo.path(proj.path)) + proj.name;
-                else
+                if(!item)
                     item = getItemFromFiles(proj.files);
 
                 return item ? {
-                    name: name,
                     item: item,
-                    path: proj.path
+                    name: name,
+                    paths: [proj.path],
+                    files: proj.files
                 } : {};
             }
 
@@ -259,23 +354,99 @@ Project
 
     Probe
     {
-        id: projectbuilder
+        id: productbuilder
+        condition: false
 
         property var scannedRootProject: productscanner.rootProject
         property var additionalDirectoriesPattern: configuration.additionalDirectoriesPattern
         property var cppSourcesPattern: configuration.cppSourcesPattern
-        property var sppHeadersPattern: configuration.cppHeadersPattern
+        property var items: configuration.items
         property var rootProject: {}
 
         configure:
         {
-            function buildProject(proj)
+            function getHigherItem(item, other)
             {
-
+                var keys = Object.keys(items);
+                return keys.indexOf(item) > other ? item : other;
             }
 
-            var proj = buildProject(proj);
-            rootProject = proj;
+            function collapseProduct(proj)
+            {
+                if(proj.product && RegExp(additionalDirectoriesPattern).test(proj.path))
+                {
+                    this.paths = this.paths.concat(proj.product.paths);
+                    this.item = getHigherItem(this.item, proj.product.item);
+                    this.files = proj.product.files;
+                    proj.product = {};
+                }
+            }
+
+            function collapseProducts(proj)
+            {
+                proj.subprojects.forEach(collapseProducts);
+
+                if(proj.product)
+                    proj.subprojects.forEach(collapseProduct, proj.product);
+            }
+
+            function groupProjectsByName(proj)
+            {
+                if(proj.product)
+                {
+                    if(!this[proj.product.name])
+                        this[proj.product.name] = [];
+
+                    this[proj.product.name].push(proj);
+                }
+
+                proj.subprojects.forEach(groupProjectsByName, this);
+            }
+
+            function isSourceFile(file)
+            {
+                return RegExp(cppSourcesPattern).test(file);
+            }
+
+            function mergeProduct(proj)
+            {
+                var item = getHigherItem(this.product.item, proj.product.item);
+
+                if(this.product.files.some(isSourceFile))
+                {
+                    this.product.item = item;
+                    this.product.paths = this.product.paths.concat(proj.product.paths);
+                    this.product.files = this.product.files.concat(proj.product.files);
+                    proj.product = {};
+                }
+                else if(proj.product.files.some(isSourceFile))
+                {
+
+                }
+                else
+                {
+
+                }
+            }
+
+            function mergeProducts(projs)
+            {
+                var product = { name: projs[0].product.name };
+                projs.forEach(mergeProduct, product);
+            }
+
+            function mergeProjects(proj)
+            {
+                var projectGroups = {};
+                groupProjectsByName.call(projectGroups, scannedRootProject);
+
+                for(var name in projectGroups)
+                    mergeProducts(projectGroups[name]);
+            }
+
+            collapseProducts(scannedRootProject);
+            mergeProjects(scannedRootProject);
+            rootProject = scannedRootProject;
         }
     }
 
