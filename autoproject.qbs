@@ -325,15 +325,15 @@ Project
                 } : {};
             }
 
+            function scanSubproject(subproject)
+            {
+                this.subprojects.push(scanProject(subproject));
+            }
+
             function scanSubprojects(subprojects)
             {
                 var subprojectsList = [];
-
-                subprojects.forEach(function(subproject)
-                {
-                    subprojectsList.push(scanProject(subproject));
-                });
-
+                subprojects.forEach(scanSubproject, {subprojects: subprojectsList});
                 return subprojectsList;
             }
 
@@ -343,7 +343,7 @@ Project
                     name: proj.name,
                     path: proj.path,
                     product: getProduct(proj),
-                    subprojects: proj.subprojects ? scanSubprojects(proj.subprojects) : []
+                    subprojects: scanSubprojects(proj.subprojects)
                 };
             }
 
