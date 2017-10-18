@@ -17,7 +17,7 @@ Project
             return {
                 Tree: "Tree",
                 Flat: "Flat"
-            }
+            };
         }
 
         //-------------//
@@ -38,10 +38,10 @@ Project
             return {
                 AutoprojectTest: { pattern: "\/([Tt]est|Test\.(cpp|h))$" },
                 AutoprojectApp: { pattern: "\/[Mm]ain\.cpp$" },
-                AutoprojectDynamicLib: { pattern: "\/.+\.h$", contentPattern: "[A-Z\d]+_SHARED " },
+                AutoprojectDynamicLib: { pattern: "\/.+\.h$", contentPattern: "[A-Z\d]+SHARED " },
                 AutoprojectPlugin: { pattern: "\/.+\.h$", contentPattern: "Q_INTERFACES\(([a-zA-Z\d]+(, |,|))+\)" },
                 AutoprojectStaticLib: { pattern: "\/([Ll]ib|.+\.cpp)$" },
-                AutoprojectInclude: { pattern: "\/([Ii]nclude|.+\.h)$" },
+                AutoprojectInclude: { pattern: "\/.+\.h$" },
                 AutoprojectDoc: { pattern: "\/([Dd]ocs?|.+\.qdoc(conf)?)$" }
             };
         }
@@ -50,7 +50,7 @@ Project
         {
             return {
                 Qt: { includePath: "C:/Qt/5.10.0/msvc2017_64/include" }
-            }
+            };
         }
         //--------------------//
         //END OF CONFIGURATION//
@@ -402,6 +402,9 @@ Project
                 if(rootProject.subprojects.ComplexProject.subprojects.src.subprojects.apps.subprojects.ComplexApplication.subprojects.Test.product.paths != rootProject.subprojects.ComplexProject.subprojects.src.subprojects.apps.subprojects.ComplexApplication.subprojects.Test.path) { console.info("[3.11] Path incorrect"); return; };
                 if(!rootProject.subprojects.ComplexProject.subprojects.src.subprojects.apps.subprojects.ComplexApplication.subprojects.Test.product.files.contains(FileInfo.joinPaths(rootProject.subprojects.ComplexProject.subprojects.src.subprojects.apps.subprojects.ComplexApplication.subprojects.Test.path, "ApplicationTest.cpp"))) { console.info("[3.12] Files incorrect"); return; };
 
+                if(rootProject.subprojects.ComplexProject.subprojects.src.subprojects.libs.subprojects.ComplexLibrary.product.item != "AutoprojectStaticLib") { console.info("[3.13] Item incorrect"); return; }
+                if(rootProject.subprojects.ComplexProject.subprojects.src.subprojects.libs.subprojects.ComplexLibrary.subprojects.include.product.item != "AutoprojectDynamicLib") { console.info("[3.14] Item incorrect"); return; }
+
                 console.info("productscanner test [OK]");
             }
         }
@@ -410,11 +413,11 @@ Project
     Probe
     {
         id: productconsolidator
-        condition: false
 
         property var scannedRootProject: productscanner.rootProject
         property var additionalDirectoriesPattern: configuration.additionalDirectoriesPattern
         property var items: configuration.items
+        property var runTests: configuration.runTests
         property var rootProject: {}
 
         configure:
@@ -426,7 +429,7 @@ Project
 
             function getHigherItem(item, other)
             {
-                return getItemNames().indexOf(item) < getItemNames.indexOf(other) ? item : other;
+                return getItemNames().indexOf(item) < getItemNames().indexOf(other) ? item : other;
             }
 
             function mergeArrays(array, other)
@@ -434,34 +437,63 @@ Project
                 return array.concat(other);
             }
 
-            function mergeProduct(proj)
+            function isValid(product)
             {
-                this.product.item = getHigherItem(this.product.item, proj.product.item);
-                this.product.paths = mergeArrays(this.product.paths, proj.product.paths);
-                this.product.files = mergeArrays(this.product.files, proj.product.files);
-                proj.product = {};
+                return product.item != undefined;
             }
 
-            function isAdditionalProject(proj)
+            function mergeProduct(projectName)
             {
-                return RegExp(additionalDirectoriesPattern).test(proj.path);
+                if(isValid(this.product) && isValid(this.subprojects[projectName].product))
+                {
+                    this.product.item = getHigherItem(this.product.item, this.subprojects[projectName].product.item);
+                    this.product.paths = mergeArrays(this.product.paths, this.subprojects[projectName].product.paths);
+                    this.product.files = mergeArrays(this.product.files, this.subprojects[projectName].product.files);
+                    this.subprojects[projectName].product = {};
+                }
+            }
+
+            function isAdditionalProject(projectName)
+            {
+                return RegExp(additionalDirectoriesPattern).test(this.subprojects[projectName].path);
             }
 
             function consolidateProduct(proj)
             {
                 if(proj.product)
-                    proj.subprojects.filter(isAdditionalProject).forEach(mergeProduct, {product: proj.product})
+                    Object.keys(proj.subprojects).filter(isAdditionalProject, {subprojects: proj.subprojects}).forEach(mergeProduct, {subprojects: proj.subprojects, product: proj.product})
+            }
+
+            function callConsolidateProducts(projectName)
+            {
+                consolidateProducts(this.subprojects[projectName]);
             }
 
             function consolidateProducts(proj)
             {
-                proj.subprojects.forEach(consolidateProducts);
+                Object.keys(proj.subprojects).forEach(callConsolidateProducts, {subprojects: proj.subprojects});
                 consolidateProduct(proj);
                 return proj;
             }
 
+            console.info(scannedRootProject.subprojects.ComplexProject.subprojects.src.subprojects.libs.subprojects.ComplexLibrary.product.item);
+            console.info(scannedRootProject.subprojects.ComplexProject.subprojects.src.subprojects.libs.subprojects.ComplexLibrary.subprojects.include.product.item);
+
             var proj = consolidateProducts(scannedRootProject);
             rootProject = proj;
+
+            console.info("Products consolidated");
+
+            //Test
+            if(runTests)
+            {
+                if(rootProject.subprojects.ComplexProject.subprojects.src.subprojects.libs.subprojects.ComplexLibrary.subprojects.include.product.item != undefined) { console.info("[4.1] Product not consolidated"); return; }
+                if(!rootProject.subprojects.ComplexProject.subprojects.src.subprojects.libs.subprojects.ComplexLibrary.product.files.contains(FileInfo.joinPaths(rootProject.subprojects.ComplexProject.subprojects.src.subprojects.libs.subprojects.ComplexLibrary.subprojects.include.path, "Library.h"))) { console.info("[4.2] Product files not merged"); return; }
+                if(!rootProject.subprojects.ComplexProject.subprojects.src.subprojects.libs.subprojects.ComplexLibrary.product.files.contains(FileInfo.joinPaths(rootProject.subprojects.ComplexProject.subprojects.src.subprojects.libs.subprojects.ComplexLibrary.subprojects.include.subprojects.Include.path, "LibraryInterface.h"))) { console.info("[4.3] Product files from sub-sub-product not merged"); return; }
+                if(rootProject.subprojects.ComplexProject.subprojects.src.subprojects.libs.subprojects.ComplexLibrary.product.item != "AutoprojectDynamicLib") { console.info("[4.4] Item value not merged"); return; }
+
+                console.info("productconsolidator test [OK]");
+            }
         }
     }
 
