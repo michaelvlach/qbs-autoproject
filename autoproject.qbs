@@ -59,6 +59,7 @@ Project
         property path rootPath: ""
         property path outPath: ""
         property string cppPattern: ""
+        property bool runTests: true
 
         configure:
         {
@@ -83,7 +84,9 @@ Project
     {
         id: modulescanner
 
-        property var modules: configuration.modules
+        property var configurationModules: configuration.modules
+        property var modules: {}
+        property var runTests: configuration.runTests
 
         configure:
         {
@@ -104,36 +107,47 @@ Project
 
             function appendSubmodule(subdir)
             {
-                this.submodules.push({ name: subdir, files: getFiles(makePath(this.dir, subdir))});
+                this.submodules[subdir] = {files: getFiles(makePath(this.dir, subdir))};
             }
 
             function getModuleDir(moduleName)
             {
-                return modules[moduleName].includePath;
+                return configurationModules[moduleName].includePath;
             }
 
             function getSubmodules(moduleName)
             {
-                var submodules = [];
+                var submodules = {};
                 getSubdirs(getModuleDir(moduleName)).forEach(appendSubmodule, {submodules: submodules, dir: getModuleDir(moduleName)});
                 return submodules;
             }
 
             function getModuleNames()
             {
-                return Object.keys(modules);
+                return Object.keys(configuration.modules);
             }
 
             function scanModule(moduleName)
             {
-                this.push({files: getFiles(getModuleDir(moduleName)), submodules: getSubmodules(moduleName)});
+                this[moduleName] = {files: getFiles(getModuleDir(moduleName)), submodules: getSubmodules(moduleName)};
             }
 
-            var scannedModules = [];
+            var scannedModules = {};
             getModuleNames().forEach(scanModule, scannedModules);
             modules = scannedModules;
 
             console.info("Modules scanned");
+
+            //TEST
+            if(runTests)
+            {
+                if(!modules.Qt) { console.info("[1] Module not found in scanned modules"); return; }
+                if(!modules.Qt.submodules) { console.info("[2] Submodules missing"); return; }
+                if(!modules.Qt.submodules.QtCore) { console.info("[3] Submodule is missing"); return; }
+                if(!modules.Qt.submodules.QtCore.files) { console.info("Files are missing"); return; }
+                if(!modules.Qt.submodules.QtCore.files.contains("QString")) { console.info("File is missing"); return; }
+                console.info("modulescanner [OK]");
+            }
         }
     }
 
