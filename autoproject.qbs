@@ -85,8 +85,8 @@ Project
         id: modulescanner
 
         property var configurationModules: configuration.modules
-        property var modules: {}
         property var runTests: configuration.runTests
+        property var modules: {}
 
         configure:
         {
@@ -146,7 +146,7 @@ Project
                 if(!modules.Qt.submodules.QtCore) { console.info("[3] Submodule is missing"); return; }
                 if(!modules.Qt.submodules.QtCore.files) { console.info("Files are missing"); return; }
                 if(!modules.Qt.submodules.QtCore.files.contains("QString")) { console.info("File is missing"); return; }
-                console.info("modulescanner [OK]");
+                console.info("modulescanner test [OK]");
             }
         }
     }
@@ -157,6 +157,7 @@ Project
 
         property var rootPath: configuration.rootPath
         property var ignorePattern: configuration.ignorePattern
+        property var runTests: configuration.runTests
         property var rootProject: {}
 
         configure:
@@ -168,12 +169,12 @@ Project
 
             function appendPath(element, index, array)
             {
-                array[index] = makePath(path, element);
+                array[index] = makePath(this.path, element);
             }
 
             function appendPathToAll(array, path)
             {
-                array.forEach(appendPath);
+                array.forEach(appendPath, {path: path});
                 return array;
             }
 
@@ -194,13 +195,14 @@ Project
 
             function appendSubproject(subdir)
             {
-                this.subprojects.push(getProject(FileInfo.joinPaths(this.dir, subdir)));
+                var proj = getProject(subdir);
+                this.subprojects[proj.name] = proj;
             }
 
             function getSubprojects(dir)
             {
-                var subprojects = [];
-                getSubdirs(dir).forEach(appendSubproject, {subprojects: subprojects, dir: dir});
+                var subprojects = {};
+                getSubdirs(dir).forEach(appendSubproject, {subprojects: subprojects});
                 return subprojects;
             }
 
@@ -216,6 +218,22 @@ Project
 
             var proj = getProject(rootPath);
             rootProject = proj;
+
+            console.info("Projects scanned");
+
+            //TEST
+            if(runTests)
+            {
+                if(!rootProject.subprojects) { console.info("Scan failed"); return; }
+                if(!rootProject.subprojects.ComplexProject) { console.info("[1] Project missing"); return; }
+                if(!rootProject.subprojects.ComplexProject.name ) { console.info("[2] Name missing"); return; }
+                if(!rootProject.subprojects.ComplexProject.name == "ComplexProject") { console.info("[3] Name is incorrect"); return; }
+                if(!rootProject.subprojects.ComplexProject.path ) { console.info("[4] Path missing"); return; }
+                if(!rootProject.subprojects.ComplexProject.path.endsWith("examples/ComplexProject") ) { console.info("[5] Path is incorrect"); return; }
+                if(!rootProject.subprojects.ComplexProject.files) { console.info("[6] files are missing"); return; }
+                if(!rootProject.subprojects.ComplexProject.files.some(function(file) { return file.endsWith("README.txt"); })) { console.info("[7] file is missing"); return; }
+                console.info("projectscanner test [OK]");
+            }
         }
     }
 
