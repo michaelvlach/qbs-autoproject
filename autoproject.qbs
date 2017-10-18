@@ -141,11 +141,11 @@ Project
             //TEST
             if(runTests)
             {
-                if(!modules.Qt) { console.info("[1] Module not found in scanned modules"); return; }
-                if(!modules.Qt.submodules) { console.info("[2] Submodules missing"); return; }
-                if(!modules.Qt.submodules.QtCore) { console.info("[3] Submodule is missing"); return; }
-                if(!modules.Qt.submodules.QtCore.files) { console.info("Files are missing"); return; }
-                if(!modules.Qt.submodules.QtCore.files.contains("QString")) { console.info("File is missing"); return; }
+                if(!modules.Qt) { console.info("[1.1] Module not found in scanned modules"); return; }
+                if(!modules.Qt.submodules) { console.info("[1.2] Submodules missing"); return; }
+                if(!modules.Qt.submodules.QtCore) { console.info("[1.3] Submodule is missing"); return; }
+                if(!modules.Qt.submodules.QtCore.files) { console.info("[1.4] Files are missing"); return; }
+                if(!modules.Qt.submodules.QtCore.files.contains("QString")) { console.info("[1.5] File is missing"); return; }
                 console.info("modulescanner test [OK]");
             }
         }
@@ -225,13 +225,13 @@ Project
             if(runTests)
             {
                 if(!rootProject.subprojects) { console.info("Scan failed"); return; }
-                if(!rootProject.subprojects.ComplexProject) { console.info("[1] Project missing"); return; }
-                if(!rootProject.subprojects.ComplexProject.name ) { console.info("[2] Name missing"); return; }
-                if(!rootProject.subprojects.ComplexProject.name == "ComplexProject") { console.info("[3] Name is incorrect"); return; }
-                if(!rootProject.subprojects.ComplexProject.path ) { console.info("[4] Path missing"); return; }
-                if(!rootProject.subprojects.ComplexProject.path.endsWith("examples/ComplexProject") ) { console.info("[5] Path is incorrect"); return; }
-                if(!rootProject.subprojects.ComplexProject.files) { console.info("[6] files are missing"); return; }
-                if(!rootProject.subprojects.ComplexProject.files.some(function(file) { return file.endsWith("README.txt"); })) { console.info("[7] file is missing"); return; }
+                if(!rootProject.subprojects.ComplexProject) { console.info("[2.1] Project missing"); return; }
+                if(!rootProject.subprojects.ComplexProject.name ) { console.info("[2.2] Name missing"); return; }
+                if(rootProject.subprojects.ComplexProject.name != "ComplexProject") { console.info("[2.3] Name is incorrect"); return; }
+                if(!rootProject.subprojects.ComplexProject.path ) { console.info("[2.4] Path missing"); return; }
+                if(!rootProject.subprojects.ComplexProject.path.endsWith("examples/ComplexProject") ) { console.info("[2.5] Path is incorrect"); return; }
+                if(!rootProject.subprojects.ComplexProject.files) { console.info("[2.6] files are missing"); return; }
+                if(!rootProject.subprojects.ComplexProject.files.some(function(file) { return file.endsWith("README.txt"); })) { console.info("[2.7] file is missing"); return; }
                 console.info("projectscanner test [OK]");
             }
         }
@@ -244,6 +244,7 @@ Project
         property var scannedRootProject: projectscanner.rootProject
         property var items: configuration.items
         property var cppPattern: configuration.cppPattern
+        property var runTests: configuration.runTests
         property var rootProject: {}
 
         configure:
@@ -303,7 +304,7 @@ Project
 
             function isFileItem(file)
             {
-                return isPathItem.call({path: file}, this.item) && isFileContentItem({item: this.item}, file);
+                return isPathItem.call({path: file}, this.item) && isFileContentItem.call({item: this.item}, file);
             }
 
             function areFilesItem(item)
@@ -338,7 +339,7 @@ Project
 
             function getProductName(proj, item)
             {
-                return item ? proj.name : prependParentName(proj.path, proj.name);
+                return !item ? proj.name : prependParentName(proj.path, proj.name);
             }
 
             function getProduct(proj)
@@ -357,15 +358,16 @@ Project
                 } : {};
             }
 
-            function scanSubproject(subproject)
+            function scanSubproject(subprojectName)
             {
-                this.subprojects.push(scanProject(subproject));
+                var product = scanProject(this.subprojects[subprojectName]);
+                this.subprojectslist[product.name] = product;
             }
 
             function scanSubprojects(subprojects)
             {
-                var subprojectsList = [];
-                subprojects.forEach(scanSubproject, {subprojects: subprojectsList});
+                var subprojectsList = {};
+                Object.keys(subprojects).forEach(scanSubproject, {subprojects: subprojects, subprojectslist: subprojectsList});
                 return subprojectsList;
             }
 
@@ -378,9 +380,30 @@ Project
                     subprojects: scanSubprojects(proj.subprojects)
                 };
             }
-
             var proj = scanProject(scannedRootProject);
             rootProject = proj;
+
+            console.info("Products scanned");
+
+            //TEST
+            if(runTests)
+            {
+                if(!rootProject.subprojects.ComplexProject.subprojects.src.subprojects.apps.subprojects.ComplexApplication) { console.info("[3.1] Project missing"); return; };
+                if(!rootProject.subprojects.ComplexProject.subprojects.src.subprojects.apps.subprojects.ComplexApplication.product) { console.info("[3.2] Product missing"); return; };
+                if(rootProject.subprojects.ComplexProject.subprojects.src.subprojects.apps.subprojects.ComplexApplication.product.name != "ComplexApplication") { console.info("[3.3] Product name incorrect"); return; };
+                if(rootProject.subprojects.ComplexProject.subprojects.src.subprojects.apps.subprojects.ComplexApplication.product.item != "AutoprojectApp") { console.info("[3.4] Item incorrect"); return; };
+                if(rootProject.subprojects.ComplexProject.subprojects.src.subprojects.apps.subprojects.ComplexApplication.product.paths != rootProject.subprojects.ComplexProject.subprojects.src.subprojects.apps.subprojects.ComplexApplication.path) { console.info("[3.5] Path incorrect"); return; };
+                if(!rootProject.subprojects.ComplexProject.subprojects.src.subprojects.apps.subprojects.ComplexApplication.product.files.contains(FileInfo.joinPaths(rootProject.subprojects.ComplexProject.subprojects.src.subprojects.apps.subprojects.ComplexApplication.path, "main.cpp"))) { console.info("[3.6] Files incorrect"); return; };
+
+                if(!rootProject.subprojects.ComplexProject.subprojects.src.subprojects.apps.subprojects.ComplexApplication.subprojects.Test) { console.info("[3.7] Project missing"); return; };
+                if(!rootProject.subprojects.ComplexProject.subprojects.src.subprojects.apps.subprojects.ComplexApplication.subprojects.Test.product) { console.info("[3.8] Product missing"); return; };
+                if(rootProject.subprojects.ComplexProject.subprojects.src.subprojects.apps.subprojects.ComplexApplication.subprojects.Test.product.name != "ComplexApplicationTest") { console.info("[3.9] Product name incorrect"); return; };
+                if(rootProject.subprojects.ComplexProject.subprojects.src.subprojects.apps.subprojects.ComplexApplication.subprojects.Test.product.item != "AutoprojectTest") { console.info("[3.10] Item incorrect"); return; };
+                if(rootProject.subprojects.ComplexProject.subprojects.src.subprojects.apps.subprojects.ComplexApplication.subprojects.Test.product.paths != rootProject.subprojects.ComplexProject.subprojects.src.subprojects.apps.subprojects.ComplexApplication.subprojects.Test.path) { console.info("[3.11] Path incorrect"); return; };
+                if(!rootProject.subprojects.ComplexProject.subprojects.src.subprojects.apps.subprojects.ComplexApplication.subprojects.Test.product.files.contains(FileInfo.joinPaths(rootProject.subprojects.ComplexProject.subprojects.src.subprojects.apps.subprojects.ComplexApplication.subprojects.Test.path, "ApplicationTest.cpp"))) { console.info("[3.12] Files incorrect"); return; };
+
+                console.info("productscanner test [OK]");
+            }
         }
     }
 
