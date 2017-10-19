@@ -105,9 +105,14 @@ Project
                 return File.directoryEntries(dir, File.Files);
             }
 
+            function getSubmoduleName(moduleName, submodule)
+            {
+                return moduleName == "Qt" ? submodule.slice(moduleName.length).toLowerCase() : submodule;
+            }
+
             function appendSubmodule(subdir)
             {
-                this.submodules[subdir] = {files: getFiles(makePath(this.dir, subdir))};
+                this.submodules[getSubmoduleName(this.moduleName, subdir)] = {files: getFiles(makePath(this.dir, subdir))};
             }
 
             function getModuleDir(moduleName)
@@ -118,7 +123,7 @@ Project
             function getSubmodules(moduleName)
             {
                 var submodules = {};
-                getSubdirs(getModuleDir(moduleName)).forEach(appendSubmodule, {submodules: submodules, dir: getModuleDir(moduleName)});
+                getSubdirs(getModuleDir(moduleName)).forEach(appendSubmodule, {submodules: submodules, dir: getModuleDir(moduleName), moduleName: moduleName});
                 return submodules;
             }
 
@@ -143,9 +148,9 @@ Project
             {
                 if(!modules.Qt) { console.info("[1.1] Module not found in scanned modules"); return; }
                 if(!modules.Qt.submodules) { console.info("[1.2] Submodules missing"); return; }
-                if(!modules.Qt.submodules.QtCore) { console.info("[1.3] Submodule is missing"); return; }
-                if(!modules.Qt.submodules.QtCore.files) { console.info("[1.4] Files are missing"); return; }
-                if(!modules.Qt.submodules.QtCore.files.contains("QString")) { console.info("[1.5] File is missing"); return; }
+                if(!modules.Qt.submodules.core) { console.info("[1.3] Submodule is missing"); return; }
+                if(!modules.Qt.submodules.core.files) { console.info("[1.4] Files are missing"); return; }
+                if(!modules.Qt.submodules.core.files.contains("QString")) { console.info("[1.5] File is missing"); return; }
                 console.info("modulescanner test [OK]");
             }
         }
