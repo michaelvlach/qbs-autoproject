@@ -38,7 +38,7 @@ Project
             return {
                 AutoprojectTest: { pattern: "\/([Tt]est|Test\.(cpp|h))$" },
                 AutoprojectApp: { pattern: "\/[Mm]ain\.cpp$" },
-                AutoprojectDynamicLib: { pattern: "\/.+\.h$", contentPattern: "[A-Z\d]+SHARED " },
+                AutoprojectDynamicLib: { pattern: "\/.+\.h$", contentPattern: "[A-Z\d_]+SHARED " },
                 AutoprojectPlugin: { pattern: "\/.+\.h$", contentPattern: "Q_INTERFACES\(([a-zA-Z\d]+(, |,|))+\)" },
                 AutoprojectStaticLib: { pattern: "\/([Ll]ib|.+\.cpp)$" },
                 AutoprojectInclude: { pattern: "\/.+\.h$" },
@@ -476,9 +476,6 @@ Project
                 return proj;
             }
 
-            console.info(scannedRootProject.subprojects.ComplexProject.subprojects.src.subprojects.libs.subprojects.ComplexLibrary.product.item);
-            console.info(scannedRootProject.subprojects.ComplexProject.subprojects.src.subprojects.libs.subprojects.ComplexLibrary.subprojects.include.product.item);
-
             var proj = consolidateProducts(scannedRootProject);
             rootProject = proj;
 
@@ -503,469 +500,108 @@ Project
         property var consolidatedRootProject: productconsolidator.rootProject
         property var cppSourcesPattern: configuration.cppSourcesPattern
         property var items: configuration.items
+        property var runTests: configuration.runTests
         property var rootProject: {}
 
         configure:
         {
+            function callGroupProjectsByName(projectName)
+            {
+                groupProjectsByName.call({projects: this.projects}, this.subprojects[projectName]);
+            }
+
+            function groupProjectsByName(proj)
+            {
+                if(proj.product.item)
+                {
+                    if(!this.projects[proj.product.name])
+                        this.projects[proj.product.name] = [];
+
+                    this.projects[proj.product.name].push(proj);
+                }
+
+                Object.keys(proj.subprojects).forEach(callGroupProjectsByName, {subprojects: proj.subprojects, projects: this.projects});
+            }
+
+            function getItemNames()
+            {
+                return Object.keys(items);
+            }
+
+            function getHigherItem(item, other)
+            {
+                return getItemNames().indexOf(item) < getItemNames().indexOf(other) ? item : other;
+            }
+
+            function isSourceFile(file)
+            {
+                return RegExp(cppSourcesPattern).test(file);
+            }
+
+            function hasSources(proj)
+            {
+                return proj.product.files.some(isSourceFile);
+            }
+
+            function mergeProjects(proj, other)
+            {
+                proj.product.item = getHigherItem(proj.product.item, other.product.item);
+                proj.product.paths = proj.product.paths.concat(other.product.paths);
+                proj.product.files = proj.product.files.concat(other.product.files);
+                other.product = {};
+            }
+
+            function concatLastTwoProjects(projects)
+            {
+                var leftProject = projects[projects.length - 2];
+                var rightProject = projects[projects.length - 1];
+
+                if(!hasSources(leftProject) && hasSources(rightProject))
+                {
+                    projects.splice(projects.length - 2, 1);
+                    mergeProjects(rightProject, leftProject);
+                }
+                else
+                {
+                    projects.splice(projects.length - 1, 1);
+                    mergeProjects(leftProject, rightProject);
+                }
+
+                if(projects.length > 1)
+                    concatLastTwoProjects(projects);
+            }
+
+            function concatProjects(projectName)
+            {
+                if(this.projects[projectName].length > 1)
+                    concatLastTwoProjects(this.projects[projectName]);
+            }
+
             function mergeProducts(proj)
             {
-
+                var projects = {};
+                groupProjectsByName.call({projects: projects}, proj);
+                Object.keys(projects).forEach(concatProjects, {projects: projects});
+                return proj;
             }
 
             var proj = mergeProducts(consolidatedRootProject);
             rootProject = proj;
+
+            console.info("Products merged");
+
+            if(runTests)
+            {
+                if(rootProject.subprojects.ComplexProject.subprojects.include.subprojects.SimpleLibrary.product.item != undefined) { console.info("[5.1] Product not merged"); return; }
+                if(rootProject.subprojects.ComplexProject.subprojects.include.subprojects.ComplexPluginTest.product.item != undefined) { console.info("[5.2] Product not merged"); return; }
+                if(!rootProject.subprojects.ComplexProject.subprojects.src.subprojects.libs.subprojects.SimpleLibrary.product.paths.contains(rootProject.subprojects.ComplexProject.subprojects.include.subprojects.SimpleLibrary.path)) { console.info("[5.3] Product path not merged"); return; }
+                if(rootProject.subprojects.ComplexProject.subprojects.src.subprojects.libs.subprojects.SimpleLibrary.product.item != "AutoprojectDynamicLib") { console.info("[5.4] Product item not merged"); return; }
+                if(!rootProject.subprojects.ComplexProject.subprojects.src.subprojects.libs.subprojects.SimpleLibrary.product.files.contains(FileInfo.joinPaths(rootProject.subprojects.ComplexProject.subprojects.include.subprojects.SimpleLibrary.path, "OtherLibrary.h"))) { console.info("[5.5] Product files not merged"); return; }
+
+                console.info("productmerger test [OK]");
+            }
         }
     }
-
-//    Probe
-//    {
-//        id: scanner
-//        condition: true
-//        property stringList references: []
-
-
-//        configure:
-//        {
-
-
-//            function addDependant(product, dependant)
-//            {
-//                product.dependants.dependant = true;
-//            }
-
-//            function addDependency(product, dependency)
-//            {
-//                product.dependencies.dependency = true;
-//            }
-
-//            function appendPathElements(element, index, array)
-//            {
-//                array[index] = makePath(this, element);
-//            }
-
-//            function appendPathToArray(array, dir)
-//            {
-//                array.forEach(appendPathElements, dir);
-//                return array;
-//            }
-
-//            function appendSubProject(subdir)
-//            {
-//                this.push(createProject(subdir));
-//            }
-
-//            function createDependencies(proj)
-//            {
-//                var products = getProductsFromProject(proj);
-
-//                for(var i in products)
-//                    createProductDependencies(products[i], products);
-//            }
-
-//            function getParentDirName(dir)
-//            {
-//                return FileInfo.baseName(FileInfo.path(dir));
-//            }
-
-//            function createNameFromParentDir(dir)
-//            {
-//                return getParentDirName(dir) + FileInfo.baseName(dir);
-//            }
-
-//            function createName(item, dir)
-//            {
-//                return matchPath(item, dir) ? createNameFromParentDir(dir) : FileInfo.baseName(dir);
-//            }
-
-//            function createProduct(item, dir, sources)
-//            {
-//                return {
-//                    name: createName(item, dir),
-//                    item: item,
-//                    path: dir,
-//                    sources: sources,
-//                    dependencies: [],
-//                    dependants: []
-//                };
-//            }
-
-//            function createProductDependencies(product, products)
-//            {
-//                var includes = getIncludedFiles(product);
-
-//                for(var i in products)
-//                    tryProductDependency(product, includes, products[i]);
-//            }
-
-//            function isProjectEmpty(proj)
-//            {
-//                return !proj.products && !proj.projects;
-//            }
-
-//            function createProject(dir)
-//            {
-//                var product = getProduct(dir);
-
-//                var proj = {
-//                    name: FileInfo.baseName(dir),
-//                    path: dir,
-//                    products: product.item ? [product] : [],
-//                    projects: getSubProjects(dir)
-//                };
-
-//                return proj;
-//            }
-
-//            function dependProducts(product, dependency)
-//            {
-//                addDependency(product, dependency);
-//                addDependant(dependency, product);
-//            }
-
-//            function isNotIgnored(element)
-//            {
-//                return !RegExp(ignorePattern).test(element);
-//            }
-
-//            function isSourceFile(element)
-//            {
-//                return RegExp(cppPattern).test(element);
-//            }
-
-//            function getFileContent(file)
-//            {
-//                return TextFile(file).readAll();
-//            }
-
-//            function getFiles(dir)
-//            {
-//                return File.directoryEntries(dir, File.Files);
-//            }
-
-//            function getFilesFiltered(dir)
-//            {
-//                return getFiles(dir).filter(isNotIgnored);
-//            }
-
-//            function getFilesInDir(dir)
-//            {
-//                return appendPathToArray(getFilesFiltered(dir), dir);
-//            }
-
-//            function getItem(dir)
-//            {
-//                var item = getItemFromDir(dir);
-//                return item ? item : getItemFromFiles(getFilesInDir(dir));
-//            }
-
-//            function getItemContentPattern(item)
-//            {
-//                return items[item].contentPattern;
-//            }
-
-//            function getItemFromDir(dir)
-//            {
-//                return Object.keys(items).find(matchDirToItem, dir);
-//            }
-
-//            function getItemFromFiles(files)
-//            {
-//                return Object.keys(items).find(matchFilesToItem, files);
-//            }
-
-//            function getItemPattern(item)
-//            {
-//                return items[item].pattern;
-//            }
-
-//            function getProduct(dir)
-//            {
-//                var item = getItem(dir);
-//                return item ? createProduct(item, dir, getSourcesInDir(dir)) : {};
-//            };
-
-//            function getProductsFromProject(proj)
-//            {
-//                var products = [];
-
-//                if(proj.products[0].item)
-//                    products.push(proj.products[0]);
-
-//                for(var i in proj.projects)
-//                    products = products.concat(getProductsFromProject(proj.projects[i]));
-
-//                return products;
-//            }
-
-//            function getSourcesInDir(dir)
-//            {
-//                return getFilesFiltered(dir).filter(isSourceFile);
-//            }
-
-//            function getDirs(dir)
-//            {
-//                return File.directoryEntries(dir, File.Dirs | File.NoDotAndDotDot);
-//            }
-
-//            function getDirsFiltered(dir)
-//            {
-//                return getDirs(dir).filter(isNotIgnored);
-//            }
-
-//            function getSubdirs(dir)
-//            {
-//                return appendPathToArray(getDirsFiltered(dir), dir);
-//            }
-
-//            function getSubProject(subdir)
-//            {
-//                return createProject(subdir);
-//            }
-
-//            function getSubProjects(dir)
-//            {
-//                var subProjects = [];
-//                getSubdirs(dir).forEach(appendSubProject, subProjects);
-//                return subProjects;
-//            }
-
-//            function hasContentPattern(item)
-//            {
-//                return getItemContentPattern(item);
-//            }
-
-//            function hasSourceExtension(file)
-//            {
-//                return element.endsWith("." + cppSourcesExtension);
-//            }
-
-//            function hasSourceFile(product, file)
-//            {
-//                return product.sources.contains(file);
-//            }
-
-//            function isProductHeaderOnly(product)
-//            {
-//                return !product.sources.some(hasSourceExtension);
-//            }
-
-//            function makePath(dir, file)
-//            {
-//                return FileInfo.joinPaths(dir, file);
-//            }
-
-//            function matchContent(item, file)
-//            {
-//                return hasContentPattern(item) ? matchFileContent(item, file) : true;
-//            }
-
-//            function matchDirToItem(item)
-//            {
-//                return matchPath(item, this);
-//            }
-
-//            function matchFileContent(item, file)
-//            {
-//                return RegExp(getItemContentPattern(item)).test(getFileContent(file));
-//            }
-
-//            function matchFilesToItem(item)
-//            {
-//                return this.some(matchFileToItem, item);
-//            }
-
-//            function matchFileToItem(file)
-//            {
-//                return matchPath(this, file) && matchContent(this, file);
-//            }
-
-//            function matchPath(item, path)
-//            {
-//                return RegExp(getItemPattern(item)).test(path);
-//            }
-
-//            function getIncludedFiles(product)
-//            {
-//                var includedFiles = {};
-
-//                for(var i in product["sources"])
-//                {
-//                    var sourceFile = product["sources"][i];
-//                    var content = TextFile(makePath(product["path"], sourceFile)).readAll();
-//                    var regexp = /#include <|\"(.*)\"|>/g
-//                    var result = [];
-//                    while(result = regexp.exec(content))
-//                        includedFiles[result[1]] = true;
-//                }
-
-//                return Object.keys(includedFiles);
-//            }
-
-//            function tryProductDependency(product, includes, other)
-//            {
-//                for(var i in includes)
-//                {
-//                    if(hasSourceFile(other, includes[i]))
-//                    {
-//                        dependProducts(product, other);
-//                        break;
-//                    }
-//                }
-//            }
-
-//            function write(proj)
-//            {
-//                var file = TextFile(makePath(outPath, proj.name + ".qbs"), TextFile.WriteOnly);
-//                file.writeLine("import qbs");
-//                file.writeLine("");
-//                writeProject(file, proj, "");
-//                file.close();
-//            }
-
-//            function writeProduct(file, product, indent)
-//            {
-//                file.writeLine(indent + "    " + product.item);
-//                file.writeLine(indent + "    {");
-//                file.writeLine(indent + "        name: \"" + product.name + "\"");
-//                file.writeLine(indent + "        path: \"" + product.path + "\"");
-//                file.writeLine(indent + "    }");
-//            }
-
-//            function writeProject(file, proj, indent)
-//            {
-//                file.writeLine(indent + "Project");
-//                file.writeLine(indent + "{");
-//                file.writeLine(indent + "    name: \"" + proj.name + "\"");
-//                file.writeLine(indent + "    property string target: project.installDirectory");
-
-//                for(var i in proj.products)
-//                    writeProduct(file, proj.products[i], indent)
-
-//                for(var i in proj.projects)
-//                    writeProject(file, proj.projects[i], indent + "    ");
-
-//                file.writeLine(indent + "}");
-//            }
-
-//            function print(proj, indent)
-//            {
-//                console.info("PROJECT: " + proj.name + " (" + proj.path + ")");
-
-//                if(projectFormat == ProjectFormat.Tree)
-//                {
-//                    for(var i in proj.projects)
-//                        print(proj.projects[i], indent + "  ");
-//                }
-
-//                for(var i in proj.products)
-//                    printProduct(proj.products[i]);
-//            }
-
-//            function printProduct(product)
-//            {
-//                console.info(product.item + "(" + product.name + ": " + product.path + ")");
-//                for(var i in product.dependencies)
-//                    console.info("+" + product.dependencies[i].path);
-//                for(var i in product.dependants)
-//                    console.info("-" + product.dependants[i].path);
-//            }
-
-//            function isAdditionalDir(dir)
-//            {
-//                return RegExp(additionalDirectoriesPattern).test(dir);
-//            }
-
-//            function getHigherItem(item, other)
-//            {
-//                var keys = Object.keys(items);
-//                return keys.indexOf(item) > keys.indexOf(other) ? item : other;
-//            }
-
-//            function tryMergeProjectInAdditionalDir(proj)
-//            {
-//                return consolidateProjectsInAdditionalDirs(proj);
-//            }
-
-//            function mergeSubProductToProduct(product, subproduct)
-//            {
-//                product.item = getHigherItem(product.item, subproduct.item);
-//                product.sources = product.sources.concat(subproduct.sources);
-//                return true;
-//            }
-
-//            function tryMergeSubProductToProduct(product, subproduct)
-//            {
-//                return isAdditionalDir(subproduct.path) ? mergeSubProductToProduct(product, subproduct) : false;
-//            }
-
-//            function tryMergeSubProjectToProduct(product, subproject)
-//            {
-//                return subproject.products ? tryMergeSubProductToProduct(product, subproject.products) : false;
-//            }
-
-//            function mergeSubProjectToProduct(product, subproject)
-//            {
-//                if(tryMergeSubProjectToProduct(product, subproject))
-//                    subproject[products] = [];
-//            }
-
-//            function mergeSubProjectsToProduct(product, subprojects)
-//            {
-//                for(var i in subprojects)
-//                    mergeSubProjectToProduct(product, subprojects[i]);
-//            }
-
-//            function consolidateProjectsInAdditionalDirs(proj)
-//            {
-//                proj.projects = proj.projects.filter(tryMergeProjectInAdditionalDir);
-
-//                if(proj.products)
-//                    mergeSubProjectsToProduct(proj.products[0], proj.projects);
-
-//                return proj.products || proj.projects;
-//            }
-
-//            function tryMergeProductsByName(product, products)
-//            {
-//                if(proj.products)
-//                {
-//                    var other = products.find(function(element)
-//                    {
-//                        if(product.name = element.name)
-//                            return true;
-//                    });
-
-//                    if(other)
-//                    {
-
-//                    }
-//                }
-//            }
-
-//            function consolidatProjectsByName(proj)
-//            {
-//                tryMergeProjectsByName(proj, getProductsFromProject(proj));
-//            }
-
-//            function consolidateProject(proj)
-//            {
-//                consolidateProjectsInAdditionalDirs(proj);
-//                consolidatProjectsByName(proj);
-//            }
-
-//            //getProductsFromProject
-
-//            var rootProject = createProject(rootPath);
-//            consolidateProject(rootProject);
-////            createDependencies(rootProject);
-//            print(rootProject, "");
-//            write(rootProject);
-
-//            references = [ makePath(outPath, rootProject.name + ".qbs") ];
-//            console.info("Probe run");
-
-//        }
-//    }
 
 //    qbsSearchPaths: scanner.outPath
 //    references: scanner.references
