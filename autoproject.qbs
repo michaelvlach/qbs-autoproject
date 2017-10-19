@@ -603,6 +603,48 @@ Project
         }
     }
 
+    Probe
+    {
+        id: projectconsolidator
+        property var mergedRootProject: productmerger.rootProject
+        property var runTests: configuration.runTests
+        property var rootProject: {}
+
+        configure:
+        {
+            function filterProject(projectName)
+            {
+                consolidateProject(this.projects[projectName]);
+
+                if(!this.projects[projectName].product.item && Object.keys(this.projects[projectName].subprojects).length == 0)
+                    delete this.projects[projectName];
+            }
+
+            function filterProjects(projects)
+            {
+                Object.keys(projects).forEach(filterProject, {projects: projects})
+            }
+
+            function consolidateProject(proj)
+            {
+                filterProjects(proj.subprojects);
+                return proj;
+            }
+
+            var proj = consolidateProject(mergedRootProject);
+            rootProject = proj;
+
+            console.info("projects consolidated");
+
+            if(runTests)
+            {
+                if(Object.keys(rootProject.subprojects.ComplexProject.subprojects.include.subprojects).length != 0) { console.info("[6.1] Projects empty but not deleted"); return; }
+                if(rootProject.subprojects.ComplexProject.subprojects.src.subprojects.libs.subprojects.ComplexLibrary.subprojects.include) { console.info("[6.2] Projects empty but not deleted"); return; }
+                console.info("projectconsolidator test [OK]");
+            }
+        }
+    }
+
 //    qbsSearchPaths: scanner.outPath
 //    references: scanner.references
 }
