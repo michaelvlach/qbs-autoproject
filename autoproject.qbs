@@ -645,6 +645,88 @@ Project
         }
     }
 
-//    qbsSearchPaths: scanner.outPath
-//    references: scanner.references
+    Probe
+    {
+        id: dependencyscanner
+        property var consolidatedRootProject: projectconsolidator.rootProject
+        property var runTests: configuration.runTests
+        property var modules: configuration.modules
+        property var rootProject: {}
+
+        configure:
+        {
+            function scanDependencies(proj)
+            {
+
+            }
+
+            var proj = scanDependencies(consolidatedRootProject);
+            rootProject = proj;
+
+            console.info("dependencies scanned");
+
+            if(runTests)
+            {
+                console.info("dependencyscanner test [OK]");
+            }
+        }
+    }
+
+    Probe
+    {
+        id: dependencybuilder
+        property var dependencyScanRootProject: dependencyscanner.rootProject
+        property var runTests: configuration.runTests
+        property var rootProject: {}
+
+        configure:
+        {
+            function buildDependencies(proj)
+            {
+
+            }
+
+            var proj = buildDependencies(dependencyScanRootProject);
+            rootProject = proj;
+
+            console.info("dependencies built");
+
+            if(runTests)
+            {
+                console.info("dependencybuilder test [OK]");
+            }
+        }
+    }
+
+    Probe
+    {
+        id: projectwriter
+        property var rootProject: dependencybuilder.rootProject
+        property var runTests: configuration.runTests
+        property var outPath: configuration.outPath
+        property var projectFormat: configuration.projectFormat
+        property var installDirectory: configuration.installDirectory
+        property stringList references: []
+
+        configure:
+        {
+            function writeProject(proj)
+            {
+
+            }
+
+            var refs = writeProject(rootProject);
+            references = refs;
+
+            console.info("projects written");
+
+            if(runTests)
+            {
+                console.info("projectwriter test [OK]");
+            }
+        }
+    }
+
+    qbsSearchPaths: configuration.outPath
+    references: projectwriter.references
 }
