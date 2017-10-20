@@ -76,7 +76,7 @@ Project
             outPath = out;
             cppPattern = cpp;
 
-            console.info("Autoproject configured");
+            console.info("Autoproject configured...");
         }
     }
 
@@ -141,7 +141,7 @@ Project
             getModuleNames().forEach(scanModule, scannedModules);
             modules = scannedModules;
 
-            console.info("Modules scanned");
+            console.info("[1] Modules scanned");
 
             //TEST
             if(runTests)
@@ -224,7 +224,7 @@ Project
             var proj = getProject(rootPath);
             rootProject = proj;
 
-            console.info("Projects scanned");
+            console.info("[2] Projects scanned");
 
             //TEST
             if(runTests)
@@ -388,7 +388,7 @@ Project
             var proj = scanProject(scannedRootProject);
             rootProject = proj;
 
-            console.info("Products scanned");
+            console.info("[3] Products scanned");
 
             //TEST
             if(runTests)
@@ -484,7 +484,7 @@ Project
             var proj = consolidateProducts(scannedRootProject);
             rootProject = proj;
 
-            console.info("Products consolidated");
+            console.info("[4] Products consolidated");
 
             //Test
             if(runTests)
@@ -593,7 +593,7 @@ Project
             var proj = mergeProducts(consolidatedRootProject);
             rootProject = proj;
 
-            console.info("Products merged");
+            console.info("[5] Products merged");
 
             if(runTests)
             {
@@ -639,7 +639,7 @@ Project
             var proj = consolidateProject(mergedRootProject);
             rootProject = proj;
 
-            console.info("projects consolidated");
+            console.info("[7] Projects consolidated");
 
             if(runTests)
             {
@@ -654,24 +654,62 @@ Project
     {
         id: dependencyscanner
         property var consolidatedRootProject: projectconsolidator.rootProject
+        property var cppPattern: configuration.cppPattern
         property var runTests: configuration.runTests
         property var modules: configuration.modules
         property var rootProject: {}
 
         configure:
         {
+            function isSourceFile(file)
+            {
+                return RegExp(cppPattern).test(file);
+            }
+
+            function readFile(file)
+            {
+                return TextFile(file).readAll();
+            }
+
+            function scanFile(file)
+            {
+                var content = readFile(file);
+                var regex = /#include\s*[<|\"]([a-zA-Z\/\.]+)[>|\"]/g;
+                var result = [];
+                while(result = regex.exec(content))
+                    this.includes[result[1]] = true;
+            }
+
+            function callScanDependencies(projectName)
+            {
+                scanDependencies(this.subprojects[projectName]);
+            }
+
+            function scanProductFiles(product)
+            {
+                product.includes = {};
+                product.files.filter(isSourceFile).forEach(scanFile, {includes: product.includes})
+                product.includes = Object.keys(product.includes);
+            }
+
             function scanDependencies(proj)
             {
+                Object.keys(proj.subprojects).forEach(callScanDependencies, {subprojects: proj.subprojects})
 
+                if(proj.product.files)
+                    scanProductFiles(proj.product);
+
+                return proj;
             }
 
             var proj = scanDependencies(consolidatedRootProject);
             rootProject = proj;
 
-            console.info("dependencies scanned");
+            console.info("[8] Dependencies scanned");
 
             if(runTests)
             {
+                if(!rootProject.subprojects.ComplexProject.subprojects.src.subprojects.apps.subprojects.ComplexApplication.product.includes.contains("QCoreApplication")) { console.info("7.1 Failed to read includes"); return; }
                 console.info("dependencyscanner test [OK]");
             }
         }
