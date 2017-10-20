@@ -504,6 +504,7 @@ Project
         id: productmerger
         property var consolidatedRootProject: productconsolidator.rootProject
         property var cppSourcesPattern: configuration.cppSourcesPattern
+        property var cppPattern: configuration.cppPattern
         property var items: configuration.items
         property var runTests: configuration.runTests
         property var rootProject: {}
@@ -543,6 +544,11 @@ Project
                 return RegExp(cppSourcesPattern).test(file);
             }
 
+            function isSourceOrHeaderFile(file)
+            {
+                return RegExp(cppPattern).test(file);
+            }
+
             function hasSources(proj)
             {
                 return proj.product.files.some(isSourceFile);
@@ -579,7 +585,10 @@ Project
             function concatProjects(projectName)
             {
                 if(this.projects[projectName].length > 1)
+                {
                     concatLastTwoProjects(this.projects[projectName]);
+                    this.projects[projectName][0].product.sources = this.projects[projectName][0].product.files.filter(isSourceOrHeaderFile);
+                }
             }
 
             function mergeProducts(proj)
@@ -602,6 +611,7 @@ Project
                 if(!rootProject.subprojects.ComplexProject.subprojects.src.subprojects.libs.subprojects.SimpleLibrary.product.paths.contains(rootProject.subprojects.ComplexProject.subprojects.include.subprojects.SimpleLibrary.path)) { console.info("[5.3] Product path not merged"); return; }
                 if(rootProject.subprojects.ComplexProject.subprojects.src.subprojects.libs.subprojects.SimpleLibrary.product.item != "AutoprojectDynamicLib") { console.info("[5.4] Product item not merged"); return; }
                 if(!rootProject.subprojects.ComplexProject.subprojects.src.subprojects.libs.subprojects.SimpleLibrary.product.files.contains(FileInfo.joinPaths(rootProject.subprojects.ComplexProject.subprojects.include.subprojects.SimpleLibrary.path, "OtherLibrary.h"))) { console.info("[5.5] Product files not merged"); return; }
+                if(!rootProject.subprojects.ComplexProject.subprojects.src.subprojects.plugins.subprojects.ComplexPlugin.subprojects.Test.product.sources.contains(FileInfo.joinPaths(rootProject.subprojects.ComplexProject.subprojects.include.subprojects.ComplexPluginTest.path, "AdditionalHeader.h"))) { console.info("[5.6] Product sources not merged or generated properly"); return; }
 
                 console.info("productmerger test [OK]");
             }
