@@ -3,7 +3,7 @@ import qbs.FileInfo
 
 Product
 {
-    property string path: ""
+    property stringList paths: []
    
     Depends { name: "Qt"; submodules: [ "core" ]; }
     
@@ -20,7 +20,7 @@ Product
     {
         fileTagsFilter: ["qdoc-output"]
         qbs.install: true
-        qbs.installDir: "/doc"
+        qbs.installDir: FileInfo.joinPaths(project.installDirectory, "doc")
         qbs.installSourceBase: Qt.core.qdocOutputDir
     }
 
@@ -28,6 +28,6 @@ Product
     {
         fileTagsFilter: ["qch"]
         qbs.install: true
-        qbs.installDir: "/doc"
+        qbs.installDir: FileInfo.joinPaths(project.installDirectory, "doc")
     }
 }

@@ -3,7 +3,7 @@ import qbs.FileInfo
 
 StaticLibrary
 {
-    property string path: ""
+    property stringList paths: []
 
     targetName: qbs.buildVariant == "debug" ? name + "d" : name
     
@@ -18,7 +18,7 @@ StaticLibrary
     Group
     {
         qbs.install: true
-        qbs.installDir: project.target
+        qbs.installDir: project.installDirectory
         fileTagsFilter: ["staticlibrary"]
     }
 }

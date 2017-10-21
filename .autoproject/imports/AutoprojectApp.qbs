@@ -3,13 +3,20 @@ import qbs.FileInfo
 
 CppApplication
 {
-    property string path: ""
+    property stringList paths: []
     targetName: qbs.buildVariant == "debug" ? name + "d" : name
-
+    files:
+    {
+        var list = [];
+        for(var i in paths)
+            list.push(FileInfo.joinPaths(paths[i], "*"));
+        return list;
+    }   
+    
     Group
     {
         qbs.install: true
-        qbs.installDir: project.target
+        qbs.installDir: project.installDirectory
         fileTagsFilter: ["application"]
     }
 }

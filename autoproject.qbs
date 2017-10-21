@@ -914,6 +914,6 @@ Project
         }
     }
 
-    qbsSearchPaths: configuration.outPath
+    qbsSearchPaths: configuration.autoprojectDirectory
     references: projectwriter.references
 }

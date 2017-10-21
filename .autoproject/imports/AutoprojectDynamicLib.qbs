@@ -3,7 +3,7 @@ import qbs.FileInfo
 
 DynamicLibrary
 {
-    property string path: ""
+    property stringList paths: []
     targetName: qbs.buildVariant == "debug" ? name + "d" : name
     
     Export
@@ -17,7 +17,7 @@ DynamicLibrary
     Group
     {
         qbs.install: true
-        qbs.installDir: project.target
+        qbs.installDir: project.installDirectory
         fileTagsFilter: ["dynamiclibrary"]
     }
 }

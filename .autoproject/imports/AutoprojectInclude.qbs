@@ -3,7 +3,7 @@ import qbs.FileInfo
 
 Product
 {
-    property string path: ""
+    property stringList paths: []
     
     Export
     {
