@@ -720,13 +720,105 @@ Project
         id: dependencybuilder
         property var dependencyScanRootProject: dependencyscanner.rootProject
         property var runTests: configuration.runTests
+        property var modules: modulescanner.modules
         property var rootProject: {}
 
         configure:
         {
+            if(!Array.prototype.find)
+            {
+                Object.defineProperty(Array.prototype, 'find',
+                { value: function(predicate)
+                    {
+                        if(this == null) throw new TypeError('"this" is null or not defined');
+                        if(typeof predicate !== 'function') throw new TypeError('predicate must be a function');
+                        for(var k = 0; k < (Object(this).length >>> 0); k++) if(predicate.call(arguments[1], Object(this)[k], k, Object(this))) return Object(this)[k];
+                        return undefined;
+                    }
+                });
+            }
+
+            function submoduleContainsInclude(submodule)
+            {
+                return modules[this.module].submodules[submodule].files.contains(this.include);
+            }
+
+            function findInSubmodules(module, include)
+            {
+                return Object.keys(modules[module].submodules).find(submoduleContainsInclude, {module: module, include: include});
+            }
+
+            function findInModules(include)
+            {
+                for(var module in modules)
+                {
+                    if(modules[module].files.contains(include))
+                        return module;
+                    else
+                    {
+                        var submodule = findInSubmodules(module, include);
+
+                        if(submodule)
+                            return module + "." + submodule;
+                    }
+                }
+            }
+
+            function callFindInProject(projectName)
+            {
+                return findInProject(this.subprojects[projectName], this.include);
+            }
+
+            function isFileInclude(file)
+            {
+                return this.include.contains("/") ? file.endsWith(this.include) : file.endsWith("/" + this.include);
+            }
+
+            function findInProject(proj, include)
+            {
+                if(proj.product.files)
+                {
+                    if(proj.product.files.some(isFileInclude, {include: include}))
+                        return proj.product.name;
+                }
+
+                return Object.keys(proj.subprojects).find(callFindInProject, {subprojects: proj.subprojects, include: include});
+            }
+
+            function findInProjects(include)
+            {
+                return findInProject(dependencyScanRootProject, include);
+            }
+
+            function findDependency(include)
+            {
+                var dependency = findInModules(include);
+
+                if(!dependency)
+                    dependency = findInProjects(include);
+
+                if(dependency)
+                    this.dependencies[dependency] = true;
+                else
+                    console.info("WARNING: Dependency '" + include + "' not resolved to any module or project");
+            }
+
+            function callBuildDependencies(projectName)
+            {
+                buildDependencies(this.subprojects[projectName]);
+            }
+
             function buildDependencies(proj)
             {
+                if(proj.product.includes)
+                {
+                    var dependencies = {};
+                    proj.product.includes.forEach(findDependency, {dependencies: dependencies, project: proj});
+                    proj.product.dependencies = Object.keys(dependencies);
+                }
 
+                Object.keys(proj.subprojects).forEach(callBuildDependencies, {subprojects: proj.subprojects});
+                return proj;
             }
 
             var proj = buildDependencies(dependencyScanRootProject);
@@ -736,6 +828,8 @@ Project
 
             if(runTests)
             {
+                if(!rootProject.subprojects.ComplexProject.subprojects.src.subprojects.apps.subprojects.ComplexApplication.product.dependencies.contains("Qt.core")) { console.info("Dependency resolution of module failed"); return; }
+                if(!rootProject.subprojects.ComplexProject.subprojects.src.subprojects.apps.subprojects.ComplexApplication.product.dependencies.contains("ComplexProject")) { console.info("Dependency resolution of another project failed"); return; }
                 console.info("dependencybuilder test [OK]");
             }
         }
