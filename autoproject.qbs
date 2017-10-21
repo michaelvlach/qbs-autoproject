@@ -26,7 +26,7 @@ Project
         property string autoprojectDirectory: ".autoproject"
         property string projectRoot: "examples"
         property string projectFormat: ProjectFormat.Flat
-        property string installDirectory: qbs.targetOS + qbs.architecture + "-" + qbs.toolchain.join("-")
+        property string installDirectory: qbs.targetOS + "-" + qbs.architecture + "-" + qbs.toolchain.join("-")
 
         property string ignorePattern: "\/.autoproject$"
         property string additionalDirectoriesPattern: "\/[Ii]nclude$"
@@ -847,18 +847,68 @@ Project
 
         configure:
         {
-            function writeProject(proj)
+            function write(proj)
             {
+                var filePath = FileInfo.joinPaths(outPath, proj["name"] + ".qbs")
+                var file = TextFile(filePath, TextFile.WriteOnly);
+                file.writeLine("import qbs");
+                file.writeLine("");
+                file.writeLine("Project");
+                file.writeLine("{");
+                file.writeLine("    name: \"" + proj.name + "\"");
+                file.writeLine("    property path path: \"" + proj.path + "\"");
+                file.writeLine("    property string installDirectory: \"" + installDirectory + "\"");
+                file.writeLine("");
 
+                for(var subproject in proj.subprojects)
+                    writeProject(file, proj.subprojects[subproject], "    ");
+
+                file.writeLine("}");
+                file.close();
+                return filePath;
             }
 
-            var refs = writeProject(rootProject);
+            function writeProject(file, proj, indent)
+            {
+                file.writeLine(indent + "Project");
+                file.writeLine(indent + "{");
+                file.writeLine(indent + "    name: \"" + proj.name + "\"");
+                file.writeLine(indent + "    property path path: \"" + proj.path + "\"");
+                file.writeLine(indent + "    property string installDirectory: project.installDirectory");
+                file.writeLine(indent + "");
+
+                if(proj.product.item)
+                    writeProduct(file, proj.product, indent + "    ");
+
+                for(var subproject in proj.subprojects)
+                    writeProject(file, proj.subprojects[subproject], indent + "    ");
+
+                file.writeLine(indent + "}");
+            }
+
+            function writeProduct(file, product, indent)
+            {
+                file.writeLine(indent + product.item);
+                file.writeLine(indent + "{");
+                file.writeLine(indent + "    name: \"" + product.name + "\"");
+                file.writeLine(indent + "    paths: [\"" + product.paths.join("\", \"") + "\"]");
+                product.dependencies.forEach(writeDependency, {file: file, indent: indent + "    "});
+                file.writeLine(indent + "}");
+            }
+
+            function writeDependency(dependency)
+            {
+                this.file.writeLine(this.indent + "Depends { name: \"" + dependency + "\" }");
+            }
+
+            var refs = write(rootProject);
             references = refs;
 
             console.info("projects written");
 
             if(runTests)
             {
+                console.info(configuration.outPath);
                 console.info("projectwriter test [OK]");
             }
         }
