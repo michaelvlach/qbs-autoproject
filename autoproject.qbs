@@ -764,11 +764,6 @@ Project
                 }
             }
 
-            function callFindInProject(projectName)
-            {
-                return findInProject(this.subprojects[projectName], this.include);
-            }
-
             function isFileInclude(file)
             {
                 return this.include.contains("/") ? file.endsWith(this.include) : file.endsWith("/" + this.include);
@@ -776,13 +771,26 @@ Project
 
             function findInProject(proj, include)
             {
+                var dependency = undefined;
+
                 if(proj.product.files)
                 {
                     if(proj.product.files.some(isFileInclude, {include: include}))
-                        return proj.product.name;
+                        dependency = proj.product.name;
                 }
 
-                return Object.keys(proj.subprojects).find(callFindInProject, {subprojects: proj.subprojects, include: include});
+                if(!dependency)
+                {
+                    for(var subproject in proj.subprojects)
+                    {
+                        dependency = findInProject(proj.subprojects[subproject], include);
+
+                        if(dependency)
+                            break;
+                    }
+                }
+
+                return dependency;
             }
 
             function findInProjects(include)
@@ -814,6 +822,7 @@ Project
                 {
                     var dependencies = {};
                     proj.product.includes.forEach(findDependency, {dependencies: dependencies, project: proj});
+                    delete dependencies[proj.product.name];
                     proj.product.dependencies = Object.keys(dependencies);
                 }
 
