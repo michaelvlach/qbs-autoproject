@@ -5,6 +5,7 @@ DynamicLibrary
 {
     Depends { name: "cpp" }
     property stringList paths: []
+    property stringList includePaths: []
     cpp.includePaths: paths
     targetName: qbs.buildVariant == "debug" ? name + "d" : name
     files:

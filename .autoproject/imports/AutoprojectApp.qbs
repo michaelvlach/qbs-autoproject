@@ -4,6 +4,7 @@ import qbs.FileInfo
 CppApplication
 {
     property stringList paths: []
+    property stringList includePaths: []
     targetName: qbs.buildVariant == "debug" ? name + "d" : name
     files:
     {
@@ -13,6 +14,17 @@ CppApplication
         return list;
     }
     cpp.includePaths: paths
+    
+    Export
+    {
+        Depends { name: "cpp" }
+        cpp.includePaths: product.includePaths
+        
+        Parameters
+        {
+            cpp.link: false
+        }
+    }
     
     Group
     {

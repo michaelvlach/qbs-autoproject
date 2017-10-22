@@ -659,6 +659,7 @@ Project
         id: dependencyscanner
         property var consolidatedRootProject: projectconsolidator.rootProject
         property var cppPattern: configuration.cppPattern
+        property var cppHeadersPattern: configuration.cppHeadersPattern
         property var runTests: configuration.runTests
         property var modules: configuration.modules
         property var rootProject: {}
@@ -694,6 +695,7 @@ Project
                 product.includes = {};
                 product.files.filter(isSourceFile).forEach(scanFile, {includes: product.includes})
                 product.includes = Object.keys(product.includes);
+                product.includePaths = {};
             }
 
             function scanDependencies(proj)
@@ -779,8 +781,13 @@ Project
 
                 if(proj.product.files)
                 {
-                    if(proj.product.files.some(isFileInclude, {include: include}))
+                    var file = proj.product.files.find(isFileInclude, {include: include});
+
+                    if(file)
+                    {
                         dependency = proj.product.name;
+                        proj.product.includePaths[FileInfo.path(file)] = true;
+                    }
                 }
 
                 if(!dependency)
@@ -916,6 +923,10 @@ Project
                 file.writeLine(indent + "{");
                 file.writeLine(indent + "    name: \"" + product.name + "\"");
                 file.writeLine(indent + "    paths: [\"" + product.paths.join("\", \"") + "\"]");
+                var includePaths = Object.keys(product.includePaths);
+                if(includePaths.length > 0)
+                    file.writeLine(indent + "    includePaths: [\"" + includePaths.join("\", \"") + "\"]");
+                file.writeLine(indent + "")
                 product.dependencies.forEach(writeDependency, {file: file, indent: indent + "    "});
                 file.writeLine(indent + "}");
             }

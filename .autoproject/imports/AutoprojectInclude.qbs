@@ -5,6 +5,7 @@ Product
 {
     Depends { name: "cpp" }
     property stringList paths: []
+    property stringList includePaths: []
     cpp.includePaths: paths
     files:
     {
