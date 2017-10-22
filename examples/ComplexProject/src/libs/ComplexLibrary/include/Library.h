@@ -8,7 +8,7 @@
 #  define LIBRARYSHARED IMPORT
 #endif
 
-class LIBRARYSHARED Library
+class LIBRARY_SHARED Library
 {
 public:
     void printMessage(const char *message) const;

@@ -3,12 +3,16 @@ import qbs.FileInfo
 
 Product
 {
-    property stringList paths: []
-   
     Depends { name: "Qt"; submodules: [ "core" ]; }
-    
+    property stringList paths: []
     builtByDefault: false
     type: "qch"
+    files:
+    {
+        var list = [];
+        for(var i in paths)
+            list.push(paths[i] + "/*");
+    }
 
     Group
     {

@@ -9,7 +9,7 @@ CppApplication
     {
         var list = [];
         for(var i in paths)
-            list.push(FileInfo.joinPaths(paths[i], "*"));
+            list.push(paths[i] + "/*");
         return list;
     }   
     

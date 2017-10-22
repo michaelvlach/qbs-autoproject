@@ -3,18 +3,23 @@ import qbs.FileInfo
 
 StaticLibrary
 {
+    Depends { name: "cpp" }
     property stringList paths: []
-
     targetName: qbs.buildVariant == "debug" ? name + "d" : name
+    files:
+    {
+        var list = [];
+        for(var i in paths)
+            list.push(paths[i] + "/*");
+        return list;
+    }
     
     Export
     {
         Depends { name: "cpp" }
-        cpp.link: false
+        cpp.includePaths: paths
     }
-    
-    Depends { name: "cpp" }
-    
+        
     Group
     {
         qbs.install: true

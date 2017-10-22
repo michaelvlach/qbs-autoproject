@@ -29,20 +29,19 @@ Project
         property string installDirectory: qbs.targetOS + "-" + qbs.architecture + "-" + qbs.toolchain.join("-")
 
         property string ignorePattern: "\/.autoproject$"
-        property string additionalDirectoriesPattern: "\/[Ii]nclude$"
+        property string additionalDirectoriesPattern: "\/[Ii]ncludes?$"
         property string cppSourcesPattern: "\.cpp$"
         property string cppHeadersPattern: "\.h$"
 
         property var items:
         {
             return {
-                AutoprojectTest: { pattern: "\/([Tt]est|Test\.(cpp|h))$" },
-                AutoprojectApp: { pattern: "\/[Mm]ain\.cpp$" },
-                AutoprojectDynamicLib: { pattern: "\/.+\.h$", contentPattern: "[A-Z\d_]+SHARED " },
-                AutoprojectPlugin: { pattern: "\/.+\.h$", contentPattern: "Q_INTERFACES\(([a-zA-Z\d]+(, |,|))+\)" },
-                AutoprojectStaticLib: { pattern: "\/([Ll]ib|.+\.cpp)$" },
-                AutoprojectInclude: { pattern: "\/.+\.h$" },
-                AutoprojectDoc: { pattern: "\/([Dd]ocs?|.+\.qdoc(conf)?)$" }
+                AutoprojectApp: { pattern: "(\\/[Tt]est|[Tt]est\\.(cpp|h)|\\/[Mm]ain\\.cpp)$" },
+                AutoprojectDynamicLib: { pattern: "\\/([Ii]ncludes?|.+\.h)$", contentPattern: "[A-Z\d_]+SHARED " },
+                AutoprojectPlugin: { pattern: "\\/.+\\.h$", contentPattern: "Q_INTERFACES\\(([a-zA-Z\d]+(, |,|))+\\)" },
+                AutoprojectStaticLib: { pattern: "\\/([Ll]ib|.+\\.cpp)$" },
+                AutoprojectInclude: { pattern: "\\/([Ii]ncludes?|.+\\.h)$" },
+                AutoprojectDoc: { pattern: "\\/([Dd]ocs?|.+\\.qdoc(conf)?)$" }
             };
         }
 
@@ -277,6 +276,16 @@ Project
                 return items[item].contentPattern;
             }
 
+            function isPathContentItem(item, files)
+            {
+                return files && getItemContentPattern(item) ? files.some(function(file) { return isContentItem(getFileContent(file), item); }) : true;
+            }
+
+            function isDirItem(item)
+            {
+                return isPathItem.call({path: this.path}, item) && isPathContentItem(item, this.files);
+            }
+
             function isPathItem(item)
             {
                 return RegExp(getItemPattern(item)).test(this.path);
@@ -284,7 +293,7 @@ Project
 
             function isContentItem(content, item)
             {
-                return RegExp(getItemContentPattern(item)).test(content);
+                return RegExp(getItemContentPattern(item), "g").test(content);
             }
 
             function getItemNames()
@@ -297,9 +306,9 @@ Project
                 return TextFile(file).readAll();
             }
 
-            function getItemFromDir(dir)
+            function getItemFromDir(proj)
             {
-                return getItemNames().find(isPathItem, {path: dir});
+                return getItemNames().find(isDirItem, {path: proj.path, files: proj.files});
             }
 
             function isFileContentItem(file)
@@ -342,15 +351,10 @@ Project
                 return getParentDirName(path) + name;
             }
 
-            function getProductName(proj, item)
-            {
-                return !item ? proj.name : prependParentName(proj.path, proj.name);
-            }
-
             function getProduct(proj)
             {
-                var item = getItemFromDir(proj.path);
-                var name = getProductName(proj, item);
+                var item = getItemFromDir(proj);
+                var name = item ? prependParentName(proj.path, proj.name) : proj.name;
 
                 if(!item)
                     item = getItemFromFiles(proj.files);
@@ -597,11 +601,11 @@ Project
 
             if(runTests)
             {
-                if(rootProject.subprojects.ComplexProject.subprojects.include.subprojects.SimpleLibrary.product.item != undefined) { console.info("[5.1] Product not merged"); return; }
-                if(rootProject.subprojects.ComplexProject.subprojects.include.subprojects.ComplexPluginTest.product.item != undefined) { console.info("[5.2] Product not merged"); return; }
-                if(!rootProject.subprojects.ComplexProject.subprojects.src.subprojects.libs.subprojects.SimpleLibrary.product.paths.contains(rootProject.subprojects.ComplexProject.subprojects.include.subprojects.SimpleLibrary.path)) { console.info("[5.3] Product path not merged"); return; }
+                if(rootProject.subprojects.ComplexProject.subprojects.Include.subprojects.SimpleLibrary.product.item != undefined) { console.info("[5.1] Product not merged"); return; }
+                if(rootProject.subprojects.ComplexProject.subprojects.Include.subprojects.ComplexPluginTest.product.item != undefined) { console.info("[5.2] Product not merged"); return; }
+                if(!rootProject.subprojects.ComplexProject.subprojects.src.subprojects.libs.subprojects.SimpleLibrary.product.paths.contains(rootProject.subprojects.ComplexProject.subprojects.Include.subprojects.SimpleLibrary.path)) { console.info("[5.3] Product path not merged"); return; }
                 if(rootProject.subprojects.ComplexProject.subprojects.src.subprojects.libs.subprojects.SimpleLibrary.product.item != "AutoprojectDynamicLib") { console.info("[5.4] Product item not merged"); return; }
-                if(!rootProject.subprojects.ComplexProject.subprojects.src.subprojects.libs.subprojects.SimpleLibrary.product.files.contains(FileInfo.joinPaths(rootProject.subprojects.ComplexProject.subprojects.include.subprojects.SimpleLibrary.path, "OtherLibrary.h"))) { console.info("[5.5] Product files not merged"); return; }
+                if(!rootProject.subprojects.ComplexProject.subprojects.src.subprojects.libs.subprojects.SimpleLibrary.product.files.contains(FileInfo.joinPaths(rootProject.subprojects.ComplexProject.subprojects.Include.subprojects.SimpleLibrary.path, "OtherLibrary.h"))) { console.info("[5.5] Product files not merged"); return; }
 
                 console.info("productmerger test [OK]");
             }
@@ -643,7 +647,7 @@ Project
 
             if(runTests)
             {
-                if(Object.keys(rootProject.subprojects.ComplexProject.subprojects.include.subprojects).length != 0) { console.info("[6.1] Projects empty but not deleted"); return; }
+                if(Object.keys(rootProject.subprojects.ComplexProject.subprojects.Include.subprojects).length != 0) { console.info("[6.1] Projects empty but not deleted"); return; }
                 if(rootProject.subprojects.ComplexProject.subprojects.src.subprojects.libs.subprojects.ComplexLibrary.subprojects.include) { console.info("[6.2] Projects empty but not deleted"); return; }
                 console.info("projectconsolidator test [OK]");
             }
@@ -877,22 +881,33 @@ Project
                 return filePath;
             }
 
+            function isProjectFormatFlat()
+            {
+                return projectFormat == configuration.ProjectFormat.Flat;
+            }
+
             function writeProject(file, proj, indent)
             {
-                file.writeLine(indent + "Project");
-                file.writeLine(indent + "{");
-                file.writeLine(indent + "    name: \"" + proj.name + "\"");
-                file.writeLine(indent + "    property path path: \"" + proj.path + "\"");
-                file.writeLine(indent + "    property string installDirectory: project.installDirectory");
-                file.writeLine(indent + "");
+                if(!isProjectFormatFlat())
+                {
+                    file.writeLine(indent + "Project");
+                    file.writeLine(indent + "{");
+                    file.writeLine(indent + "    name: \"" + proj.name + "\"");
+                    file.writeLine(indent + "    property path path: \"" + proj.path + "\"");
+                    file.writeLine(indent + "    property string installDirectory: project.installDirectory");
+                    file.writeLine(indent + "");
+                }
 
                 if(proj.product.item)
-                    writeProduct(file, proj.product, indent + "    ");
+                    writeProduct(file, proj.product, isProjectFormatFlat() ? indent : (indent + "    "));
 
                 for(var subproject in proj.subprojects)
-                    writeProject(file, proj.subprojects[subproject], indent + "    ");
+                    writeProject(file, proj.subprojects[subproject], isProjectFormatFlat() ? indent : (indent + "    "));
 
-                file.writeLine(indent + "}");
+                if(projectFormat == configuration.ProjectFormat.Tree)
+                {
+                    file.writeLine(indent + "}");
+                }
             }
 
             function writeProduct(file, product, indent)
@@ -918,6 +933,7 @@ Project
             if(runTests)
             {
                 console.info(configuration.outPath);
+
                 console.info("projectwriter test [OK]");
             }
         }
