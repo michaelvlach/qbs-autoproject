@@ -6,5 +6,5 @@
 bool printMessage(const QString &message)
 {
     qDebug() << message;
-    return message.isEmpty();    
+    return !message.isEmpty();
 }

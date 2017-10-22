@@ -1,4 +1,4 @@
-#include "OtherLibrary.h"
+#include "MyLibrary.h"
 
 const char *MyLibrary::message() const
 {

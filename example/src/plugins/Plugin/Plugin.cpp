@@ -5,5 +5,5 @@
 
 QString Plugin::message() const
 {
-    Library().prepareMessage(MyLibrary().message());
+    return Library().prepareMessage(MyLibrary().message());
 }

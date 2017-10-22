@@ -7,7 +7,7 @@ class LibraryTest : public QObject
 private slots:
     void printMessage()
     {
-        QCOMPARE(QString("Hello World"), Library().prepareMessage("Hello world"));
+        QCOMPARE(QString("Hello world"), Library().prepareMessage("Hello world"));
     }
 };
 

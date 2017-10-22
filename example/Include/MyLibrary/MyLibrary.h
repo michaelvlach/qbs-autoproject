@@ -2,13 +2,13 @@
 
 #include <Common.h>
 
-#ifdef OTHERLIBRARY
-#  define OTHERLIBRARY_SHARED EXPORT
+#ifdef MYLIBRARY
+#  define MYLIBRARY_SHARED EXPORT
 #else
-#  define OTHERLIBRARY_SHARED IMPORT
+#  define MYLIBRARY_SHARED IMPORT
 #endif
 
-class OTHERLIBRARY_SHARED OtherLibrary
+class MYLIBRARY_SHARED MyLibrary
 {
 public:
     const char *message() const;

@@ -8,7 +8,7 @@ class MyLibraryTest : public QObject
 private slots:
     void message()
     {
-		QCOMPARE(QString(OtherLibrary().message()), QString("Hello world"));
+        QCOMPARE(QString(MyLibrary().message()), QString("Hello world"));
     }
 };
 

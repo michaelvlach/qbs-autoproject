@@ -9,10 +9,14 @@ class PluginTest : public QObject
 private slots:
     void printMessage()
     {
-        QPluginLoader loader("Plugin");
+        QString pluginName = "Plugin";
+#ifdef QT_DEBUG
+        pluginName.append("d");
+#endif
+        QPluginLoader loader(pluginName);
         PluginInterface *interface = qobject_cast<PluginInterface*>(loader.instance());
         QVERIFY(interface);
-        QCOMPARE(QString("Hello world"), interface->message("Hello world"));
+        QCOMPARE(QString("Hello world"), QString(interface->message()));
     }
 };
 

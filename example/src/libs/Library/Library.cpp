@@ -1,6 +1,6 @@
 #include "Library.h"
 
-QString Library::printMessage(const char *message) const
+QString Library::prepareMessage(const char *message) const
 {
     return QString(message);
 }
