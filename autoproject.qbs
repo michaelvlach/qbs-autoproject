@@ -923,8 +923,16 @@ Project
                 var includePaths = Object.keys(product.includePaths);
                 if(includePaths.length > 0)
                     file.writeLine(indent + "    includePaths: [\"" + includePaths.join("\", \"") + "\"]");
-                file.writeLine(indent + "")
+                file.writeLine("");
                 product.dependencies.forEach(writeDependency, {file: file, indent: indent + "    "});
+                file.writeLine("");
+                if(product.dependencies.length > 0)
+                {
+                    file.writeLine(indent + "    Export");
+                    file.writeLine(indent + "    {");
+                    product.dependencies.forEach(writeDependency, {file: file, indent: indent + "        "});
+                    file.writeLine(indent + "    }");
+                }
                 file.writeLine(indent + "}");
             }
 
