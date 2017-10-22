@@ -341,20 +341,15 @@ Project
                 return FileInfo.baseName(dir);
             }
 
-            function getParentDirName(dir)
+            function prependParentName(parent, name)
             {
-                return getDirName(getParentDir(dir));
+                return parent && parent.product.name ? (parent.product.name + name) : (getDirName(parent.path) + name);
             }
 
-            function prependParentName(path, name)
-            {
-                return getParentDirName(path) + name;
-            }
-
-            function getProduct(proj)
+            function getProduct(proj, parent)
             {
                 var item = getItemFromDir(proj);
-                var name = item ? prependParentName(proj.path, proj.name) : proj.name;
+                var name = item ? prependParentName(parent, proj.name) : proj.name;
 
                 if(!item)
                     item = getItemFromFiles(proj.files);
@@ -369,27 +364,29 @@ Project
 
             function scanSubproject(subprojectName)
             {
-                var product = scanProject(this.subprojects[subprojectName]);
+                var product = scanProject(this.subprojects[subprojectName], this.parent);
                 this.subprojectslist[product.name] = product;
             }
 
-            function scanSubprojects(subprojects)
+            function scanSubprojects(subprojects, parent)
             {
                 var subprojectsList = {};
-                Object.keys(subprojects).forEach(scanSubproject, {subprojects: subprojects, subprojectslist: subprojectsList});
+                Object.keys(subprojects).forEach(scanSubproject, {subprojects: subprojects, subprojectslist: subprojectsList, parent: parent});
                 return subprojectsList;
             }
 
-            function scanProject(proj)
+            function scanProject(proj, parent)
             {
-                return {
+                var project = {
                     name: proj.name,
                     path: proj.path,
-                    product: getProduct(proj),
-                    subprojects: scanSubprojects(proj.subprojects)
+                    product: getProduct(proj, parent),
+                    subprojects: {}
                 };
+                project.subprojects = scanSubprojects(proj.subprojects, project);
+                return project;
             }
-            var proj = scanProject(scannedRootProject);
+            var proj = scanProject(scannedRootProject, undefined);
             rootProject = proj;
 
             console.info("[3] Products scanned");
