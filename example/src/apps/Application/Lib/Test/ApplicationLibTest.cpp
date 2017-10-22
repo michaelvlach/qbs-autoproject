@@ -7,8 +7,8 @@ class ApplicationLibTest : public QObject
 private slots:
     void printMessageTest()
     {
-        QCOMPARE(printMessage("Hello world"), true);
-        QCOMPARE(printMessage(""), false);
+        QCOMPARE(PrintMessage().printMessage("Hello world"), true);
+        QCOMPARE(PrintMessage().printMessage(""), false);
     }
 };
 

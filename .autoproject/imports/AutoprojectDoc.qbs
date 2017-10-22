@@ -11,13 +11,19 @@ Product
     {
         var list = [];
         for(var i in paths)
-            list.push(paths[i] + "/*");
+            list.push(paths[i] + "/*.qdoc");
         return list;
     }
 
     Group
     {
-        files: "*.qdocconf"
+        files:
+        {
+            var list = [];
+            for(var i in paths)
+                list.push(paths[i] + "/*.qdocconf");
+            return list;
+        }
         fileTags: "qdocconf-main"
     }
 

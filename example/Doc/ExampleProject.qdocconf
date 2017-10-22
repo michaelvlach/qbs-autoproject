@@ -9,10 +9,12 @@ version                          = 1.0
 HTML.stylesheets                 = $QTDIR/doc/global/template/style/offline.css
 HTML.headerstyles                = "<link rel=\"stylesheet\" type=\"text/css\" href=\"style/offline.css\" />\n"
 
+Cpp.ignoretokens               += override
+
 qhp.projects                     = ExampleProject
-qhp.ExampleProject.file          = ExampleProject.qhp
-qhp.ExampleProject.namespace     = org.examples.ExampleProject.1.0
-qhp.ExampleProject.virtualFolder = ExampleProject
+qhp.ExampleProject.file          = exampleproject.qhp
+qhp.ExampleProject.namespace     = org.examples.exampleproject.1.0
+qhp.ExampleProject.virtualFolder = exampleproject
 qhp.ExampleProject.indexTitle    = Qbs-Autoproject Example Project
 qhp.ExampleProject.indexRoot     =
 qhp.extraFiles                  += style/offline.css

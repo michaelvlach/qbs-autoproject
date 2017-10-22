@@ -1,6 +1,13 @@
 /*!
-\fn bool printMessage(const QString &message)
+\class PrintMessage
 \inmodule ExampleProject
+\brief The \c PrintMessage class prints messages.
+
+Use printMessage() method to print a message.
+*/
+
+/*!
+\fn bool PrintMessage::printMessage(const QString &message)
 
 Prints \a message and returns \c true unless the \a message was empty.
 */

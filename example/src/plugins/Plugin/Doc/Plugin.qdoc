@@ -1,13 +1,13 @@
 /*!
-\class SomePlugin
-\inmodule ComplexProject
-\brief The \c SomePlugin implements SomePluginInterface
+\class Plugin
+\inmodule ExampleProject
+\brief The \c Plugin implements PluginInterface
 
 Allows the user to print arbitrary message.
 */
 
 /*!
-\fn void SomePlugin::printMessage(const char *message) const
+\fn QString Plugin::message() const
 
-Prints \a message.
+Returns a \c message.
 */

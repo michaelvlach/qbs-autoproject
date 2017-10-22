@@ -2,4 +2,8 @@
 
 class QString;
 
-bool printMessage(const QString &message);
+class PrintMessage
+{
+public:
+    bool printMessage(const QString &message);
+};

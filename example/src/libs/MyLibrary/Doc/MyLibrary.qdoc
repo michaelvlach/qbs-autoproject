@@ -7,7 +7,7 @@ Returns "Hello world" message.
 */
 
 /*!
-\fn const char *OtherLibrary::message() const
+\fn const char *MyLibrary::message() const
 
-Returns  \c "Hello world" message;
+Returns \c "Hello world" message;
 */
