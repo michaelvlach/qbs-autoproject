@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QObject>
 #include <SomePluginInterface.h>
 
 class SomePlugin : public QObject, public SomePluginInterface

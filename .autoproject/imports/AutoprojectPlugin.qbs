@@ -5,6 +5,7 @@ DynamicLibrary
 {
     Depends { name: "cpp" }
     property stringList paths: []
+    cpp.includePaths: paths
     targetName: qbs.buildVariant == "debug" ? name + "d" : name
     files:
     {
@@ -20,11 +21,11 @@ DynamicLibrary
         cpp.includePaths:
         {
             var list = [];
-            for(var i in paths)
+            for(var i in product.paths)
             {
-                var files = File.directoryEntries(paths[i], File.Files);
+                var files = File.directoryEntries(product.paths[i], File.Files);
                 if(files.some(function(file) { return RegExp(".+\.h"); }) && !files.some(function(file) { return RegExp(".+\.cpp"); }))
-                    list.push(paths[i]);
+                    list.push(product.paths[i]);
             }
             return list;
         }

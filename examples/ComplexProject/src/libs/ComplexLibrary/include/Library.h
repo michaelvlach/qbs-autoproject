@@ -1,15 +1,16 @@
 #pragma once
 
 #include <Common.h>
+#include "LibraryInterface.h"
 
 #ifdef LIBRARY
-#  define LIBRARYSHARED EXPORT
+#  define LIBRARY_SHARED EXPORT
 #else
-#  define LIBRARYSHARED IMPORT
+#  define LIBRARY_SHARED IMPORT
 #endif
 
-class LIBRARY_SHARED Library
+class LIBRARY_SHARED Library : public LibraryInterface
 {
 public:
-    void printMessage(const char *message) const;
+    void printMessage(const char *message) const override;
 };

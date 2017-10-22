@@ -11,7 +11,8 @@ CppApplication
         for(var i in paths)
             list.push(paths[i] + "/*");
         return list;
-    }   
+    }
+    cpp.includePaths: paths
     
     Group
     {

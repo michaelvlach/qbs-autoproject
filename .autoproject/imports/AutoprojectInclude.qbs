@@ -5,6 +5,7 @@ Product
 {
     Depends { name: "cpp" }
     property stringList paths: []
+    cpp.includePaths: paths
     files:
     {
         var list = [];
@@ -16,7 +17,7 @@ Product
     Export
     {
         Depends { name: "cpp" }
-        cpp.includePaths: paths
+        cpp.includePaths: product.paths
         Parameters
         {
             cpp.link: false

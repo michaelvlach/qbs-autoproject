@@ -1,7 +1,7 @@
 #pragma once
 
-class Library
+class LibraryInterface
 {
 public:
-    virtual void printMessage(const char *message) = 0;
+    virtual void printMessage(const char *message) const = 0;
 };
