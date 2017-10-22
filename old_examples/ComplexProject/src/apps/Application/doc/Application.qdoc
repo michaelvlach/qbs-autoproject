@@ -1,6 +1,0 @@
-/*!
-\fn int printMessage()
-\inmodule ComplexProject
-
-Prints "Hello world" and returns \c 0.
-*/

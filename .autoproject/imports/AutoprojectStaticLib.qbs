@@ -5,6 +5,7 @@ StaticLibrary
 {
     Depends { name: "cpp" }
     property stringList paths: []
+    property stringList includePaths: []
     targetName: qbs.buildVariant == "debug" ? name + "d" : name
     files:
     {
@@ -17,7 +18,7 @@ StaticLibrary
     Export
     {
         Depends { name: "cpp" }
-        cpp.includePaths: paths
+        cpp.includePaths: product.includePaths
     }
         
     Group
