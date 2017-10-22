@@ -1,1 +1,1 @@
-ComplexProject example for qbs-autoproject
+Example project for demonstrating qbs-autoproject features.

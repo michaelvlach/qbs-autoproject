@@ -1,0 +1,13 @@
+/*!
+\class Library
+\inmodule ExampleProject
+\brief The \c Library class prepares QString messages
+
+Takes raw string and outputs a QString string.
+*/
+
+/*!
+\fn QString Library::prepareMessage(const char *message) const
+
+Wraps the \a message into \c QString.
+*/

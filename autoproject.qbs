@@ -24,7 +24,7 @@ Project
         //CONFIGURATION//
         //-------------//
         property string autoprojectDirectory: ".autoproject"
-        property string projectRoot: "examples"
+        property string projectRoot: "example"
         property string projectFormat: ProjectFormat.Flat
         property string installDirectory: qbs.targetOS + "-" + qbs.architecture + "-" + qbs.toolchain.join("-")
 

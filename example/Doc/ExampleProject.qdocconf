@@ -1,0 +1,18 @@
+headerdirs                      += ..
+sourcedirs                      += ..
+headers.fileextensions          += *.h
+sources.fileextensions          += *.qdoc *.cpp
+generateindex                    = true
+syntaxhighlighting               = true
+version                          = 1.0
+
+HTML.stylesheets                 = $QTDIR/doc/global/template/style/offline.css
+HTML.headerstyles                = "<link rel=\"stylesheet\" type=\"text/css\" href=\"style/offline.css\" />\n"
+
+qhp.projects                     = ExampleProject
+qhp.ExampleProject.file          = ExampleProject.qhp
+qhp.ExampleProject.namespace     = org.examples.ExampleProject.1.0
+qhp.ExampleProject.virtualFolder = ExampleProject
+qhp.ExampleProject.indexTitle    = Qbs-Autoproject Example Project
+qhp.ExampleProject.indexRoot     =
+qhp.extraFiles                  += style/offline.css

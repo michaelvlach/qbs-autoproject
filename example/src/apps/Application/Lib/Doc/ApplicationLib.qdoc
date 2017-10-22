@@ -1,0 +1,6 @@
+/*!
+\fn bool printMessage(const QString &message)
+\inmodule ExampleProject
+
+Prints \a message and returns \c true unless the \a message was empty.
+*/

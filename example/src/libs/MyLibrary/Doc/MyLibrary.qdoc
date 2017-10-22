@@ -1,0 +1,13 @@
+/*!
+\class MyLibrary
+\inmodule ExampleProject
+\brief The \c MyLibrary class returns "Hello world" message
+
+Returns "Hello world" message.
+*/
+
+/*!
+\fn const char *OtherLibrary::message() const
+
+Returns  \c "Hello world" message;
+*/
