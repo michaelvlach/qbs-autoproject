@@ -403,7 +403,7 @@ Project
 
     Probe
     {
-        id: productconsolidator
+        id: productmerger
 
         property var scannedRootProject: productscanner.rootProject
         property var additionalDirectoriesPattern: configuration.additionalDirectoriesPattern
@@ -441,32 +441,32 @@ Project
                 return RegExp(additionalDirectoriesPattern).test(directory);
             }
 
-            function consolidateProduct(project)
+            function mergeProducts(project)
             {
                 if(isValid(project.product))
                     forAll(project.subprojects, mergeProduct, { product: project.product })
             }
 
-            function consolidateProducts(project)
+            function mergeProject(project)
             {
-                forAll(project.subprojects, function(subproject) { consolidateProducts(subproject); }, {});
-                consolidateProduct(project);
+                forAll(project.subprojects, function(subproject) { mergeProject(subproject); }, {});
+                mergeProducts(project);
                 return project;
             }
 
-            print("[5/10] Consolidating products...");
+            print("[5/10] Merging products...");
             var start = Date.now();
-            var project = consolidateProducts(scannedRootProject);
+            var project = mergeProject(scannedRootProject);
             rootProject = project;
 
             //Test
             if(runTests)
             {
                 print("    Running tests...");
-                if(isValid(rootProject.subprojects.src.subprojects.libs.subprojects.Library.subprojects.include.product)) { print("    FAIL: Product 'rootProject.subprojects.src.subprojects.libs.subprojects.Library.subprojects.include' was not consolidated with its parent"); return; }
+                if(isValid(rootProject.subprojects.src.subprojects.libs.subprojects.Library.subprojects.include.product)) { print("    FAIL: Product 'rootProject.subprojects.src.subprojects.libs.subprojects.Library.subprojects.include' was not merged with its parent"); return; }
                 if(rootProject.subprojects.src.subprojects.libs.subprojects.Library.product.item != "AutoprojectDynamicLib") { print("    FAIL: 'item' of product 'rootProject.subprojects.src.subprojects.libs.subprojects.Library' was not updated, EXPECTED: \"AutoprojectDynamicLib\", \"" + rootProject.subprojects.src.subprojects.libs.subprojects.Library.product.item + "\""); return; }
-                if(!rootProject.subprojects.src.subprojects.libs.subprojects.Library.product.paths.contains(rootProject.subprojects.src.subprojects.libs.subprojects.Library.subprojects.include.path)) { print("    FAIL: Product 'rootProject.subprojects.src.subprojects.libs.subprojects.Library' is missing path of the consolidated directory 'include'"); return; }
-                if(!rootProject.subprojects.src.subprojects.libs.subprojects.Library.product.files.contains(makePath(rootProject.subprojects.src.subprojects.libs.subprojects.Library.subprojects.include.path, "Library.h"))) { print("    FAIL: Product 'rootProject.subprojects.src.subprojects.libs.subprojects.Library' is missing file 'Library.h' from consolidated directory"); return; }
+                if(!rootProject.subprojects.src.subprojects.libs.subprojects.Library.product.paths.contains(rootProject.subprojects.src.subprojects.libs.subprojects.Library.subprojects.include.path)) { print("    FAIL: Product 'rootProject.subprojects.src.subprojects.libs.subprojects.Library' is missing path of the merged directory 'include'"); return; }
+                if(!rootProject.subprojects.src.subprojects.libs.subprojects.Library.product.files.contains(makePath(rootProject.subprojects.src.subprojects.libs.subprojects.Library.subprojects.include.path, "Library.h"))) { print("    FAIL: Product 'rootProject.subprojects.src.subprojects.libs.subprojects.Library' is missing file 'Library.h' from merged directory 'include'"); return; }
                 print("    [Ok]");
             }
 
@@ -477,43 +477,16 @@ Project
 
     Probe
     {
-        id: productmerger
-        property var consolidatedRootProject: productconsolidator.rootProject
+        id: productconsolidator
+        property var mergedRootProject: productmerger.rootProject
         property var cppSourcesPattern: configuration.cppSourcesPattern
         property var items: configuration.items
+        property var itemNames: getKeys(items)
         property var runTests: configuration.runTests
         property var rootProject: {}
 
         configure:
         {
-            function callGroupProjectsByName(projectName)
-            {
-                groupProjectsByName.call({projects: this.projects}, this.subprojects[projectName]);
-            }
-
-            function groupProjectsByName(proj)
-            {
-                if(proj.product.item)
-                {
-                    if(!this.projects[proj.product.name])
-                        this.projects[proj.product.name] = [];
-
-                    this.projects[proj.product.name].push(proj);
-                }
-
-                Object.keys(proj.subprojects).forEach(callGroupProjectsByName, {subprojects: proj.subprojects, projects: this.projects});
-            }
-
-            function getItemNames()
-            {
-                return Object.keys(items);
-            }
-
-            function getHigherItem(item, other)
-            {
-                return getItemNames().indexOf(item) < getItemNames().indexOf(other) ? item : other;
-            }
-
             function isSourceFile(file)
             {
                 return RegExp(cppSourcesPattern).test(file);
@@ -524,15 +497,26 @@ Project
                 return proj.product.files.some(isSourceFile);
             }
 
-            function mergeProjects(proj, other)
+            function getHigherItem(item, other)
             {
-                proj.product.item = getHigherItem(proj.product.item, other.product.item);
-                proj.product.paths = proj.product.paths.concat(other.product.paths);
-                proj.product.files = proj.product.files.concat(other.product.files);
+                return itemNames.indexOf(item) < itemNames.indexOf(other) ? item : other;
+            }
+
+            function mergeArrays(array, other)
+            {
+                return array.concat(other);
+            }
+
+            function mergeProducts(project, other)
+            {
+                project.product.item = getHigherItem(project.product.item, other.product.item);
+                project.product.paths = mergeArrays(project.product.paths, other.product.paths);
+                project.product.files = mergeArrays(project.product.files, other.product.files);
+                print("    '" + other.product.name + "' (" + other.path + ") ---> '" + project.product.name + "' (" + project.path + ")");
                 other.product = {};
             }
 
-            function concatLastTwoProjects(projects)
+            function mergeLastTwoProjects(projects)
             {
                 var leftProject = projects[projects.length - 2];
                 var rightProject = projects[projects.length - 1];
@@ -540,47 +524,60 @@ Project
                 if(!hasSources(leftProject) && hasSources(rightProject))
                 {
                     projects.splice(projects.length - 2, 1);
-                    mergeProjects(rightProject, leftProject);
+                    mergeProducts(rightProject, leftProject);
                 }
                 else
                 {
                     projects.splice(projects.length - 1, 1);
-                    mergeProjects(leftProject, rightProject);
+                    mergeProducts(leftProject, rightProject);
+                }
+            }
+
+            function mergeProjects(projects)
+            {
+                while(projects.length > 1)
+                    mergeLastTwoProjects(projects);
+            }
+
+            function groupProjectsByProductName(project, projects)
+            {
+                if(isValid(project.product))
+                {
+                    if(!projects[project.product.name])
+                        projects[project.product.name] = [];
+
+                    projects[project.product.name].push(project);
                 }
 
-                if(projects.length > 1)
-                    concatLastTwoProjects(projects);
+                forAll(project.subprojects, function(subproject) { groupProjectsByProductName(subproject, projects); }, {});
             }
 
-            function concatProjects(projectName)
-            {
-                if(this.projects[projectName].length > 1)
-                    concatLastTwoProjects(this.projects[projectName]);
-            }
-
-            function mergeProducts(proj)
+            function consolidateProducts(project)
             {
                 var projects = {};
-                groupProjectsByName.call({projects: projects}, proj);
-                Object.keys(projects).forEach(concatProjects, {projects: projects});
-                return proj;
+                groupProjectsByProductName(project, projects);
+                forAll(projects, mergeProjects, {});
+                return project;
+
             }
 
-            var proj = mergeProducts(consolidatedRootProject);
-            rootProject = proj;
-
-            console.info("[5] Products merged");
+            print("[6/10] Consolidating products...");
+            var start = Date.now();
+            var project = consolidateProducts(mergedRootProject);
+            rootProject = project;
 
             if(runTests)
             {
-//                if(rootProject.subprojects.ComplexProject.subprojects.Include.subprojects.SimpleLibrary.product.item != undefined) { console.info("[5.1] Product not merged"); return; }
-//                if(rootProject.subprojects.ComplexProject.subprojects.Include.subprojects.ComplexPluginTest.product.item != undefined) { console.info("[5.2] Product not merged"); return; }
-//                if(!rootProject.subprojects.ComplexProject.subprojects.src.subprojects.libs.subprojects.SimpleLibrary.product.paths.contains(rootProject.subprojects.ComplexProject.subprojects.Include.subprojects.SimpleLibrary.path)) { console.info("[5.3] Product path not merged"); return; }
-//                if(rootProject.subprojects.ComplexProject.subprojects.src.subprojects.libs.subprojects.SimpleLibrary.product.item != "AutoprojectDynamicLib") { console.info("[5.4] Product item not merged"); return; }
-//                if(!rootProject.subprojects.ComplexProject.subprojects.src.subprojects.libs.subprojects.SimpleLibrary.product.files.contains(FileInfo.joinPaths(rootProject.subprojects.ComplexProject.subprojects.Include.subprojects.SimpleLibrary.path, "OtherLibrary.h"))) { console.info("[5.5] Product files not merged"); return; }
-
-                console.info("productmerger test [OK]");
+                print("    Running tests...");
+                if(isValid(rootProject.subprojects.Include.subprojects.MyLibrary.product)) { print("    FAIL: Product 'rootProject.subprojects.Include.subprojects.MyLibrary' was not merged with its namesake"); return; }
+                if(rootProject.subprojects.src.subprojects.libs.subprojects.MyLibrary.product.item != "AutoprojectDynamicLib") { print("    FAIL: 'item' of product 'rootProject.subprojects.src.subprojects.libs.subprojects.MyLibrary' was not updated, EXPECTED: \"AutoprojectDynamicLib\", \"" + rootProject.subprojects.src.subprojects.libs.subprojects.MyLibrary.product.item + "\""); return; }
+                if(!rootProject.subprojects.src.subprojects.libs.subprojects.MyLibrary.product.paths.contains(rootProject.subprojects.Include.subprojects.MyLibrary.path)) { print("    FAIL: Product 'rootProject.subprojects.src.subprojects.libs.subprojects.MyLibrary' is missing path of the merged directory"); return; }
+                if(!rootProject.subprojects.src.subprojects.libs.subprojects.MyLibrary.product.files.contains(makePath(rootProject.subprojects.Include.subprojects.MyLibrary.path, "MyLibrary.h"))) { print("    FAIL: Product 'rootProject.subprojects.src.subprojects.libs.subprojects.MyLibrary' is missing file 'MyLibrary.h'"); return; }
+                print("    [Ok]");
             }
+
+            var time = Date.now() - start;
+            console.info("[6/10] Done (" + time + "ms)");
         }
     }
 
