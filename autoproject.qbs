@@ -5,8 +5,23 @@ import qbs.TextFile
 
 Project
 {
-    name: "autoproject"
     id: autoproject
+
+    //Common functions
+    property var makePath: (function(path, subpath) { return FileInfo.joinPaths(path, subpath); })
+    property var getFilePath: (function(file) { return FileInfo.path(file); })
+    property var getFileName: (function(file) { return FileInfo.baseName(file); })
+    property var print: (function(message) { console.info(message); })
+    property var getDirectories: (function(directory) { var dirs = File.directoryEntries(directory, File.Dirs | File.NoDotAndDotDot); dirs.forEach(prependPath, { path: directory }); return dirs; })
+    property var getFiles: (function(directory) { var files = File.directoryEntries(directory, File.Files); files.forEach(prependPath, { path: directory }); return files; })
+    property var getKeys: (function(object) { return Object.keys(object); })
+    property var prependPath: (function(file, index, array) { array[index] = makePath(this.path, file); })
+    property var forAllKeys: (function(object, func, context) { context.object = object; context.func = func; getKeys(object).forEach(callByKey, context); return object; })
+    property var forAll: (function(array, func, context) { array.forEach(func, context); return array; })
+    property var callByKey: (function(key) { this.func(key, this.object[key]); })
+    //End of common functions
+
+    property var elapsed: []
 
     Probe
     {
@@ -23,6 +38,7 @@ Project
         //-------------//
         //CONFIGURATION//
         //-------------//
+        property string name: "Autoproject"
         property string autoprojectDirectory: ".autoproject"
         property string projectRoot: "Example"
         property string projectFormat: ProjectFormat.Flat
@@ -62,20 +78,29 @@ Project
 
         configure:
         {
-            function makePath(path, subpath)
-            {
-                return FileInfo.joinPaths(path, subpath);
-            }
-
+            print(name + " @ " + Date());
+            print(Array(39).join("-"));
+            print("Running steps...");
+            print("[1/10] Parsing configuration...");
+            var start = Date.now();
             var root = makePath(sourceDirectory, projectRoot);
             var out = makePath(sourceDirectory, autoprojectDirectory);
             var cpp = cppSourcesPattern + "|" + cppHeadersPattern;
-
             rootPath = root;
             outPath = out;
             cppPattern = cpp;
 
-            console.info("Autoproject configured...");
+            //Print configured variables
+            print("    Project root: " + rootPath);
+            print("    Output path: " + outPath);
+            print("    Install path: " + makePath(qbs.installRoot, installDirectory));
+            print("    Output format: " + (projectFormat == ProjectFormat.Flat ? "flat" : "tree"));
+            print("    Items: \n        " + getKeys(items).join("\n        "));
+            print("    Modules: \n        " + getKeys(modules).join("\n        "));
+
+            var time = Date.now() - start;
+            elapsed.push(time);
+            print("[1/10] Done (" + time + "ms)");
         }
     }
 
@@ -89,69 +114,61 @@ Project
 
         configure:
         {
-            function makePath(path, subpath)
+            function getSubmoduleName(directory, moduleName)
             {
-                return FileInfo.joinPaths(path, subpath);
+                return (directory.startsWith(moduleName) ? directory.slice(moduleName.length) : directory).toLowerCase();
             }
 
-            function getSubdirs(dir)
+            function addSubmodule(directory)
             {
-                return File.directoryEntries(dir, File.Dirs | File.NoDotAndDotDot);
+                this.submodules[getSubmoduleName(getFileName(directory), this.moduleName)] = { includePath: directory, files: getFiles(directory) };
             }
 
-            function getFiles(dir)
-            {
-                return File.directoryEntries(dir, File.Files);
-            }
-
-            function getSubmoduleName(moduleName, submodule)
-            {
-                return moduleName == "Qt" ? submodule.slice(moduleName.length).toLowerCase() : submodule;
-            }
-
-            function appendSubmodule(subdir)
-            {
-                this.submodules[getSubmoduleName(this.moduleName, subdir)] = {files: getFiles(makePath(this.dir, subdir))};
-            }
-
-            function getModuleDir(moduleName)
+            function getModuleDirectory(moduleName)
             {
                 return configurationModules[moduleName].includePath;
             }
 
-            function getSubmodules(moduleName)
+            function getSubmodules(directories, moduleName)
             {
                 var submodules = {};
-                getSubdirs(getModuleDir(moduleName)).forEach(appendSubmodule, {submodules: submodules, dir: getModuleDir(moduleName), moduleName: moduleName});
+                forAll(directories, addSubmodule, { submodules: submodules, moduleName: moduleName });
                 return submodules;
             }
 
-            function getModuleNames()
+            function scanModule(moduleName, module)
             {
-                return Object.keys(configuration.modules);
+                module.files = getFiles(module.includePath);
+                module.submodules = getSubmodules(getDirectories(module.includePath), moduleName);
+                print("    " + moduleName);
             }
 
-            function scanModule(moduleName)
+            function scanModules(modules)
             {
-                this[moduleName] = {files: getFiles(getModuleDir(moduleName)), submodules: getSubmodules(moduleName)};
+                return forAllKeys(modules, scanModule, {});
             }
 
-            var scannedModules = {};
-            getModuleNames().forEach(scanModule, scannedModules);
-            modules = scannedModules;
-
-            console.info("[1] Modules scanned");
+            print("[2/10] Scanning modules...");
+            var start = Date.now();
+            var scannedModules = scanModules(configurationModules);
+            modules = scannedModules;            
 
             //TEST
             if(runTests)
             {
-//                if(!modules.Qt) { console.info("[1.1] Module not found in scanned modules"); return; }
-//                if(!modules.Qt.submodules) { console.info("[1.2] Submodules missing"); return; }
-//                if(!modules.Qt.submodules.core) { console.info("[1.3] Submodule is missing"); return; }
-//                if(!modules.Qt.submodules.core.files) { console.info("[1.4] Files are missing"); return; }
-//                if(!modules.Qt.submodules.core.files.contains("QString")) { console.info("[1.5] File is missing"); return; }
-                console.info("modulescanner test [OK]");
+                print("    Running tests...");
+                if(!modules.Qt) { print("    FAIL: Qt module is missing"); return; }
+                if(!modules.Qt.submodules) { print("    FAIL: Qt submodules are missing"); return; }
+                if(!modules.Qt.submodules.core) { print("    FAIL: Qt.core submodule is missing"); return; }
+                if(!modules.Qt.submodules.core.includePath) { print("    FAIL: Qt.core submodule is missing includePath"); return; }
+                if(!modules.Qt.submodules.core.files) { print("    FAIL: Qt.core submodule is missing files"); return; }
+                if(!modules.Qt.submodules.core.files.contains(makePath(modules.Qt.submodules.core.includePath, "QString"))) { print("    FAIL: Qt.core is missing QString file"); return; }
+                print("    [Ok]");
             }
+
+            var time = Date.now() - start;
+            elapsed.push(time);
+            print("[2/10] Done (" + time + "ms)");
         }
     }
 
