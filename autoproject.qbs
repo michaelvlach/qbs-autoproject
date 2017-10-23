@@ -16,15 +16,16 @@ Project
     property var getFiles: (function(directory) { var files = File.directoryEntries(directory, File.Files); files.forEach(prependPath, { path: directory }); return files; })
     property var getKeys: (function(object) { return Object.keys(object); })
     property var prependPath: (function(file, index, array) { array[index] = makePath(this.path, file); })
-    property var forAllKeys: (function(object, func, context) { context.object = object; context.func = func; getKeys(object).forEach(callByKey, context); return object; })
-    property var forAll: (function(array, func, context) { array.forEach(func, context); return array; })
-    property var callByKey: (function(key) { this.func(key, this.object[key]); })
+    property var forAll: (function(object, func, context) { context.object = object; context.func = func; getKeys(object).forEach(callByName, context); return object; })
+    property var callByName: (function(name) { this.name = name; this.func.call(this, this.object[name]); })
+    property var isValid: (function(object) { return object && getKeys(object).length > 0; })
     property var addFind: (function()
     {
         if(!Array.prototype.find)
         {
             Object.defineProperty(Array.prototype, 'find',
-            { value: function(predicate)
+            {
+                value: function(predicate)
                 {
                     if(this == null) throw new TypeError('"this" is null or not defined');
                     if(typeof predicate !== 'function') throw new TypeError('predicate must be a function');
@@ -144,26 +145,26 @@ Project
             function getSubmodules(directories, moduleName)
             {
                 var submodules = {};
-                forAll(directories, addSubmodule, { submodules: submodules, moduleName: moduleName });
+                directories.forEach(addSubmodule, { submodules: submodules, moduleName: moduleName });
                 return submodules;
             }
 
-            function scanModule(moduleName, module)
+            function scanModule(module)
             {
                 module.files = getFiles(module.includePath);
-                module.submodules = getSubmodules(getDirectories(module.includePath), moduleName);
-                print("    " + moduleName);
+                module.submodules = getSubmodules(getDirectories(module.includePath), this.name);
+                print("    " + this.name);
             }
 
             function scanModules(modules)
             {
-                return forAllKeys(modules, scanModule, {});
+                return forAll(modules, scanModule, {});
             }
 
             print("[2/10] Scanning modules...");
             var start = Date.now();
             var scannedModules = scanModules(configurationModules);
-            modules = scannedModules;            
+            modules = scannedModules;
 
             //TEST
             if(runTests)
@@ -202,8 +203,8 @@ Project
 
             function appendSubproject(directory)
             {
-                var proj = getProject(directory);
-                this.subprojects[proj.name] = proj;
+                var project = getProject(directory);
+                this.subprojects[project.name] = project;
             }
 
             function getSubprojects(directory)
@@ -227,25 +228,24 @@ Project
 
             print("[3/10] Creating projects...");
             var start = Date.now();
-            var proj = getProject(rootPath);
-            rootProject = proj;            
+            var project = getProject(rootPath);
+            rootProject = project;
 
             //TEST
             if(runTests)
             {
                 print("    Running tests...");
-                if(!rootProject.name) { console.info("    FAIL: Root project is missing 'name'"); return; }
-                if(!rootProject.path) { console.info("    FAIL: Root project is missing 'path'"); return; }
-                if(rootProject.path != rootPath) { console.info("    FAIL: Root project path is incorrect, EXPECTED: \"" + rootPath + "\", ACTUAL: \"" + rootProject.path + "\""); return; }
-                if(rootProject.name != "Example") { console.info("    FAIL: Root project name is incorrect --- EXPECTED: \"Example\", ACTUAL: \"" + rootProject.name + "\""); return; }
-                if(!rootProject.subprojects) { console.info("    FAIL: Root project is missing 'subprojects'"); return; }
-                if(getKeys(rootProject.subprojects).join(",") != "Doc,Include,src") { console.info("    FAIL: Failed to detect subprojects --- EXPECTED: \"Doc,Include,src\", ACTUAL: \"" + getKeys(rootProject.subprojects) + "\""); return; }
-                if(!rootProject.subprojects.Include.path) { console.info("    FAIL: Project 'rootProject.subprojects.Include' is missing 'path'"); return; }
-                if(rootProject.subprojects.Include.path != makePath(rootProject.path, "Include")) { console.info("    FAIL: 'rootProject.subprojects.Include' project 'path' is incorrect --- EXPECTED: \"" + makePath(rootProject.path, "Include") + "\", ACTUAL: \"" + rootProject.subprojects.Include.path + "\""); return; }
-                if(!rootProject.subprojects.Include.subprojects) { console.info("    FAIL: 'rootProject.subprojects.Include' is missing 'subprojects'"); return; }
-                if(!getKeys(rootProject.subprojects.Include.subprojects).contains("MyLibrary")) { console.info("    FAIL: 'rootProject.subprojects.Include' is missing subproject 'MyLibrary'"); return; }
-                if(!rootProject.subprojects.Include.subprojects.MyLibrary.files) { console.info("    FAIL: 'rootProject.subprojects.Include.subprojects.MyLibrary' is missing 'files'"); return; }
-                if(!rootProject.subprojects.Include.subprojects.MyLibrary.files.contains(makePath(rootProject.subprojects.Include.subprojects.MyLibrary.path, "MyLibrary.h"))) { console.info("    FAIL: 'rootProject.subprojects.Include.subprojects.MyLibrary' is missing files 'MyLibrary.h'"); return; }
+                if(getKeys(rootProject).join(",") != "name,product,path,files,subprojects") { print("    FAIL: Failed to project values --- EXPECTED: \"name,product,path,files,subprojects\", ACTUAL: \"" + getKeys(rootProject) + "\""); return; }
+                if(rootProject.path != rootPath) { print("    FAIL: Root project path is incorrect, EXPECTED: \"" + rootPath + "\", ACTUAL: \"" + rootProject.path + "\""); return; }
+                if(rootProject.name != "Example") { print("    FAIL: Root project name is incorrect --- EXPECTED: \"Example\", ACTUAL: \"" + rootProject.name + "\""); return; }
+                if(!rootProject.subprojects) { print("    FAIL: Root project is missing 'subprojects'"); return; }
+                if(getKeys(rootProject.subprojects).join(",") != "Doc,Include,src") { print("    FAIL: Failed to detect subprojects --- EXPECTED: \"Doc,Include,src\", ACTUAL: \"" + getKeys(rootProject.subprojects) + "\""); return; }
+                if(!rootProject.subprojects.Include.path) { print("    FAIL: Project 'rootProject.subprojects.Include' is missing 'path'"); return; }
+                if(rootProject.subprojects.Include.path != makePath(rootProject.path, "Include")) { print("    FAIL: 'rootProject.subprojects.Include' project 'path' is incorrect --- EXPECTED: \"" + makePath(rootProject.path, "Include") + "\", ACTUAL: \"" + rootProject.subprojects.Include.path + "\""); return; }
+                if(!rootProject.subprojects.Include.subprojects) { print("    FAIL: 'rootProject.subprojects.Include' is missing 'subprojects'"); return; }
+                if(!getKeys(rootProject.subprojects.Include.subprojects).contains("MyLibrary")) { print("    FAIL: 'rootProject.subprojects.Include' is missing subproject 'MyLibrary'"); return; }
+                if(!rootProject.subprojects.Include.subprojects.MyLibrary.files) { print("    FAIL: 'rootProject.subprojects.Include.subprojects.MyLibrary' is missing 'files'"); return; }
+                if(!rootProject.subprojects.Include.subprojects.MyLibrary.files.contains(makePath(rootProject.subprojects.Include.subprojects.MyLibrary.path, "MyLibrary.h"))) { print("    FAIL: 'rootProject.subprojects.Include.subprojects.MyLibrary' is missing files 'MyLibrary.h'"); return; }
                 print("    [Ok]");
             }
 
@@ -323,7 +323,7 @@ Project
 
             function areFilesItem(item)
             {
-                return this.files.some(isFileItem, { item: item });
+                return this.files && this.files.some(isFileItem, { item: item });
             }
 
             function getItemFromProjectFiles(files)
@@ -363,14 +363,9 @@ Project
                 return project.product;
             }
 
-            function scanSubproject(subprojectName, subproject)
-            {
-                scanProject(subproject, this.project);
-            }
-
             function scanSubprojects(project)
             {
-                return forAllKeys(project.subprojects, scanSubproject, { project: project });
+                return forAll(project.subprojects, function(subproject) { scanProject(subproject, this.project) }, { project: project });
             }
 
             function scanProject(project, parent)
@@ -389,6 +384,15 @@ Project
             //TEST
             if(runTests)
             {
+                print("    Running tests...");
+                if(getKeys(rootProject.subprojects.Include.product).join(",") != "item,name,paths,files,dependencies,includePaths") { print("    FAIL: Failed to detect product values --- EXPECTED: \"item,name,paths,files,dependencies,includePaths\", ACTUAL: \"" + getKeys(rootProject.subprojects.Include.product) + "\""); return; }
+                if(rootProject.subprojects.Include.product.name != "ExampleInclude") { print("    FAIL: Incorrect name of product 'rootProject.subprojects.Include' --- EXPECTED: \"ExampleInclude\", ACTUAL: \"" + rootProject.subprojects.Include.product.name + "\""); return; }
+                if(rootProject.subprojects.Include.product.item != "AutoprojectInclude") { print("    FAIL: Incorrect item of product 'rootProject.subprojects.Include' --- EXPECTED: \"AutoprojectInclude\", ACTUAL: \"" + rootProject.subprojects.Include.product.item + "\""); return; }
+                if(!rootProject.subprojects.Include.product.files.contains(makePath(rootProject.subprojects.Include.path, "Common.h"))) { print("    FAIL: Project 'rootProject.subprojects.Include' is missing file 'Common.h'"); return; }
+                if(rootProject.subprojects.src.subprojects.apps.subprojects.Application.product.item != "AutoprojectApp") { print("    FAIL: Incorrect item of product 'rootProject.subprojects.src.subprojects.apps.subprojects.Application' --- EXPECTED: \"AutoprojectApp\", ACTUAL: \"" + rootProject.subprojects.src.subprojects.apps.subprojects.Application.product.item + "\""); return; }
+                if(rootProject.subprojects.src.subprojects.apps.subprojects.Application.product.name != "Application") { print("    FAIL: Incorrect name of product 'rootProject.subprojects.src.subprojects.apps.subprojects.Application' --- EXPECTED: \"Application\", ACTUAL: \"" + rootProject.subprojects.src.subprojects.apps.subprojects.Application.product.name + "\""); return; }
+                if(rootProject.subprojects.src.subprojects.apps.subprojects.Application.product.name != "Application") { print("    FAIL: Incorrect name of product 'rootProject.subprojects.src.subprojects.apps.subprojects.Application' --- EXPECTED: \"Application\", ACTUAL: \"" + rootProject.subprojects.src.subprojects.apps.subprojects.Application.product.name + "\""); return; }
+                if(rootProject.subprojects.src.subprojects.libs.subprojects.Library.product.item != "AutoprojectStaticLib") { print("    FAIL: Incorrect item of product 'rootProject.subprojects.src.subprojects.libs.subprojects.Library' --- EXPECTED: \"AutoprojectStaticLib\", ACTUAL: \"" + rootProject.subprojects.src.subprojects.libs.subprojects.Library.product.item + "\""); return; }
                 print("    [Ok]");
             }
 
@@ -404,19 +408,15 @@ Project
         property var scannedRootProject: productscanner.rootProject
         property var additionalDirectoriesPattern: configuration.additionalDirectoriesPattern
         property var items: configuration.items
+        property var itemNames: getKeys(items)
         property var runTests: configuration.runTests
         property var rootProject: {}
 
         configure:
         {
-            function getItemNames()
-            {
-                return Object.keys(items);
-            }
-
             function getHigherItem(item, other)
             {
-                return getItemNames().indexOf(item) < getItemNames().indexOf(other) ? item : other;
+                return itemNames.indexOf(item) < itemNames.indexOf(other) ? item : other;
             }
 
             function mergeArrays(array, other)
@@ -424,60 +424,54 @@ Project
                 return array.concat(other);
             }
 
-            function isValid(product)
+            function mergeProduct(project)
             {
-                return product.item != undefined;
-            }
-
-            function mergeProduct(projectName)
-            {
-                if(isValid(this.product) && isValid(this.subprojects[projectName].product))
+                if(isValid(project.product) && isAdditionalDirectory(project.path))
                 {
-                    this.product.item = getHigherItem(this.product.item, this.subprojects[projectName].product.item);
-                    this.product.paths = mergeArrays(this.product.paths, this.subprojects[projectName].product.paths);
-                    this.product.files = mergeArrays(this.product.files, this.subprojects[projectName].product.files);
-                    this.subprojects[projectName].product = {};
+                    this.product.item = getHigherItem(this.product.item, project.product.item);
+                    this.product.paths = mergeArrays(this.product.paths, project.product.paths);
+                    this.product.files = mergeArrays(this.product.files, project.product.files);
+                    print("    '" + project.name + "' (" + project.path + ") ---> '" + this.product.name + "' (" + this.product.paths[0] + ")");
+                    project.product = {};
                 }
             }
 
-            function isAdditionalProject(projectName)
+            function isAdditionalDirectory(directory)
             {
-                return RegExp(additionalDirectoriesPattern).test(this.subprojects[projectName].path);
+                return RegExp(additionalDirectoriesPattern).test(directory);
             }
 
-            function consolidateProduct(proj)
+            function consolidateProduct(project)
             {
-                if(proj.product)
-                    Object.keys(proj.subprojects).filter(isAdditionalProject, {subprojects: proj.subprojects}).forEach(mergeProduct, {subprojects: proj.subprojects, product: proj.product})
+                if(isValid(project.product))
+                    forAll(project.subprojects, mergeProduct, { product: project.product })
             }
 
-            function callConsolidateProducts(projectName)
+            function consolidateProducts(project)
             {
-                consolidateProducts(this.subprojects[projectName]);
+                forAll(project.subprojects, function(subproject) { consolidateProducts(subproject); }, {});
+                consolidateProduct(project);
+                return project;
             }
 
-            function consolidateProducts(proj)
-            {
-                Object.keys(proj.subprojects).forEach(callConsolidateProducts, {subprojects: proj.subprojects});
-                consolidateProduct(proj);
-                return proj;
-            }
-
-            var proj = consolidateProducts(scannedRootProject);
-            rootProject = proj;
-
-            console.info("[4] Products consolidated");
+            print("[5/10] Consolidating products...");
+            var start = Date.now();
+            var project = consolidateProducts(scannedRootProject);
+            rootProject = project;
 
             //Test
             if(runTests)
             {
-//                if(rootProject.subprojects.ComplexProject.subprojects.src.subprojects.libs.subprojects.ComplexLibrary.subprojects.include.product.item != undefined) { console.info("[4.1] Product not consolidated"); return; }
-//                if(!rootProject.subprojects.ComplexProject.subprojects.src.subprojects.libs.subprojects.ComplexLibrary.product.files.contains(FileInfo.joinPaths(rootProject.subprojects.ComplexProject.subprojects.src.subprojects.libs.subprojects.ComplexLibrary.subprojects.include.path, "Library.h"))) { console.info("[4.2] Product files not merged"); return; }
-//                if(!rootProject.subprojects.ComplexProject.subprojects.src.subprojects.libs.subprojects.ComplexLibrary.product.files.contains(FileInfo.joinPaths(rootProject.subprojects.ComplexProject.subprojects.src.subprojects.libs.subprojects.ComplexLibrary.subprojects.include.subprojects.Include.path, "LibraryInterface.h"))) { console.info("[4.3] Product files from sub-sub-product not merged"); return; }
-//                if(rootProject.subprojects.ComplexProject.subprojects.src.subprojects.libs.subprojects.ComplexLibrary.product.item != "AutoprojectDynamicLib") { console.info("[4.4] Item value not merged"); return; }
-
-                console.info("productconsolidator test [OK]");
+                print("    Running tests...");
+                if(isValid(rootProject.subprojects.src.subprojects.libs.subprojects.Library.subprojects.include.product)) { print("    FAIL: Product 'rootProject.subprojects.src.subprojects.libs.subprojects.Library.subprojects.include' was not consolidated with its parent"); return; }
+                if(rootProject.subprojects.src.subprojects.libs.subprojects.Library.product.item != "AutoprojectDynamicLib") { print("    FAIL: 'item' of product 'rootProject.subprojects.src.subprojects.libs.subprojects.Library' was not updated, EXPECTED: \"AutoprojectDynamicLib\", \"" + rootProject.subprojects.src.subprojects.libs.subprojects.Library.product.item + "\""); return; }
+                if(!rootProject.subprojects.src.subprojects.libs.subprojects.Library.product.paths.contains(rootProject.subprojects.src.subprojects.libs.subprojects.Library.subprojects.include.path)) { print("    FAIL: Product 'rootProject.subprojects.src.subprojects.libs.subprojects.Library' is missing path of the consolidated directory 'include'"); return; }
+                if(!rootProject.subprojects.src.subprojects.libs.subprojects.Library.product.files.contains(makePath(rootProject.subprojects.src.subprojects.libs.subprojects.Library.subprojects.include.path, "Library.h"))) { print("    FAIL: Product 'rootProject.subprojects.src.subprojects.libs.subprojects.Library' is missing file 'Library.h' from consolidated directory"); return; }
+                print("    [Ok]");
             }
+
+            var time = Date.now() - start;
+            console.info("[5/10] Done (" + time + "ms)");
         }
     }
 
