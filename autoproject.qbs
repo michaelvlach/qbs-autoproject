@@ -28,10 +28,10 @@ Project
         property string projectFormat: ProjectFormat.Flat
         property string installDirectory: qbs.targetOS + "-" + qbs.architecture + "-" + qbs.toolchain.join("-")
 
-        property string ignorePattern: "\/.autoproject$"
-        property string additionalDirectoriesPattern: "\/[Ii]ncludes?$"
-        property string cppSourcesPattern: "\.cpp$"
-        property string cppHeadersPattern: "\.h$"
+        property string ignorePattern: "\\/.autoproject$"
+        property string additionalDirectoriesPattern: "\\/[Ii]ncludes?$"
+        property string cppSourcesPattern: "\\.cpp$"
+        property string cppHeadersPattern: "\\.h$"
 
         property var items:
         {
@@ -189,12 +189,12 @@ Project
 
             function getSubdirs(dir)
             {
-                return appendPathToAll(File.directoryEntries(dir, File.Dirs | File.NoDotAndDotDot).filter(isNotIgnored), dir);
+                return appendPathToAll(File.directoryEntries(dir, File.Dirs | File.NoDotAndDotDot), dir).filter(isNotIgnored);
             }
 
             function getFiles(dir)
             {
-                return appendPathToAll(File.directoryEntries(dir, File.Files).filter(isNotIgnored), dir);
+                return appendPathToAll(File.directoryEntries(dir, File.Files), dir).filter(isNotIgnored);
             }
 
             function appendSubproject(subdir)

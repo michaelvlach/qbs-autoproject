@@ -12,5 +12,5 @@ int main(int, char **)
     qDebug() << pluginName;
     QPluginLoader loader(pluginName);
     PluginInterface *interface = qobject_cast<PluginInterface*>(loader.instance());
-    return printMessage(interface ? interface->message() : "Failed to load message plugin.");
+    return PrintMessage().printMessage(interface ? interface->message() : "Failed to load message plugin.");
 }
