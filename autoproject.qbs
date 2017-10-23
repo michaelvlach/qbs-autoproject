@@ -583,50 +583,52 @@ Project
 
     Probe
     {
-        id: projectconsolidator
-        property var mergedRootProject: productmerger.rootProject
+        id: projectcleaner
+        property var mergedRootProject: productconsolidator.rootProject
         property var runTests: configuration.runTests
         property var rootProject: {}
 
         configure:
         {
-            function filterProject(projectName)
+            function filterProject(project)
             {
-                consolidateProject(this.projects[projectName]);
+                cleanProject(project);
 
-                if(!this.projects[projectName].product.item && Object.keys(this.projects[projectName].subprojects).length == 0)
-                    delete this.projects[projectName];
+                if(!isValid(project.product) && !isValid(project.subprojects))
+                {
+                    print("    Removed empty project '" + project.name + "' (" + project.path + ")");
+                    delete this.object[this.name];
+                }
             }
 
-            function filterProjects(projects)
+            function cleanProject(project)
             {
-                Object.keys(projects).forEach(filterProject, {projects: projects})
+                forAll(project.subprojects, filterProject, {});
+                return project;
             }
 
-            function consolidateProject(proj)
-            {
-                filterProjects(proj.subprojects);
-                return proj;
-            }
-
-            var proj = consolidateProject(mergedRootProject);
-            rootProject = proj;
-
-            console.info("[7] Projects consolidated");
+            print("[7/10] Cleaning projects...");
+            var start = Date.now();
+            var project = cleanProject(mergedRootProject);
+            rootProject = project;
 
             if(runTests)
             {
-//                if(Object.keys(rootProject.subprojects.ComplexProject.subprojects.Include.subprojects).length != 0) { console.info("[6.1] Projects empty but not deleted"); return; }
-//                if(rootProject.subprojects.ComplexProject.subprojects.src.subprojects.libs.subprojects.ComplexLibrary.subprojects.include) { console.info("[6.2] Projects empty but not deleted"); return; }
-                console.info("projectconsolidator test [OK]");
+                print("    Running tests...");
+                if(rootProject.subprojects.Include.subprojects.MyLibrary) { print("    FAIL: Empty project 'rootProject.subprojects.Include.subprojects.MyLibrary' was not removed"); return; }
+                if(rootProject.subprojects.src.subprojects.libs.subprojects.Library.subprojects.include) { print("    FAIL: Empty project 'rootProject.subprojects.src.subprojects.libs.subprojects.Library.subprojects.include' was not removed"); return; }
+                print("    [Ok]");
             }
+
+            var time = Date.now() - start;
+            console.info("[7/10] Done (" + time + "ms)");
         }
     }
 
     Probe
     {
         id: dependencyscanner
-        property var consolidatedRootProject: projectconsolidator.rootProject
+        property var consolidatedRootProject: projectcleaner.rootProject
         property var cppPattern: configuration.cppPattern
         property var cppHeadersPattern: configuration.cppHeadersPattern
         property var runTests: configuration.runTests
