@@ -355,8 +355,9 @@ Project
                     project.product.name = name;
                     project.product.paths = [project.path];
                     project.product.files = project.files;
+                    project.product.includes = {};
                     project.product.dependencies = {};
-                    project.product.includePaths = [];
+                    project.product.includePaths = {};
                     print("    " + project.product.name + " (" + project.product.item + "): " + project.path);
                 }
 
@@ -385,7 +386,7 @@ Project
             if(runTests)
             {
                 print("    Running tests...");
-                if(getKeys(rootProject.subprojects.Include.product).join(",") != "item,name,paths,files,dependencies,includePaths") { print("    FAIL: Failed to detect product values --- EXPECTED: \"item,name,paths,files,dependencies,includePaths\", ACTUAL: \"" + getKeys(rootProject.subprojects.Include.product) + "\""); return; }
+                if(getKeys(rootProject.subprojects.Include.product).join(",") != "item,name,paths,files,includes,dependencies,includePaths") { print("    FAIL: Failed to detect product values --- EXPECTED: \"item,name,paths,files,includes,dependencies,includePaths\", ACTUAL: \"" + getKeys(rootProject.subprojects.Include.product) + "\""); return; }
                 if(rootProject.subprojects.Include.product.name != "ExampleInclude") { print("    FAIL: Incorrect name of product 'rootProject.subprojects.Include' --- EXPECTED: \"ExampleInclude\", ACTUAL: \"" + rootProject.subprojects.Include.product.name + "\""); return; }
                 if(rootProject.subprojects.Include.product.item != "AutoprojectInclude") { print("    FAIL: Incorrect item of product 'rootProject.subprojects.Include' --- EXPECTED: \"AutoprojectInclude\", ACTUAL: \"" + rootProject.subprojects.Include.product.item + "\""); return; }
                 if(!rootProject.subprojects.Include.product.files.contains(makePath(rootProject.subprojects.Include.path, "Common.h"))) { print("    FAIL: Project 'rootProject.subprojects.Include' is missing file 'Common.h'"); return; }
@@ -628,7 +629,7 @@ Project
     Probe
     {
         id: dependencyscanner
-        property var consolidatedRootProject: projectcleaner.rootProject
+        property var cleanedRootProject: projectcleaner.rootProject
         property var cppPattern: configuration.cppPattern
         property var cppHeadersPattern: configuration.cppHeadersPattern
         property var runTests: configuration.runTests
@@ -642,53 +643,46 @@ Project
                 return RegExp(cppPattern).test(file);
             }
 
-            function readFile(file)
-            {
-                return TextFile(file).readAll();
-            }
-
             function scanFile(file)
             {
-                var content = readFile(file);
+                var content = TextFile(file).readAll();
                 var regex = /#include\s*[<|\"]([a-zA-Z\/\.]+)[>|\"]/g;
                 var result = [];
                 while(result = regex.exec(content))
                     this.includes[result[1]] = true;
             }
 
-            function callScanDependencies(projectName)
+            function scanProductFiles(project)
             {
-                scanDependencies(this.subprojects[projectName]);
+                if(isValid(project.product))
+                    project.product.files.filter(isSourceFile).forEach(scanFile, { includes: project.product.includes });
+
+                if(isValid(project.product.includes))
+                    print("    " + project.product.name + " [" + getKeys(project.product.includes).join(", ") + "]");
             }
 
-            function scanProductFiles(product)
+            function scanDependencies(project)
             {
-                product.includes = {};
-                product.files.filter(isSourceFile).forEach(scanFile, {includes: product.includes})
-                product.includes = Object.keys(product.includes);
-                product.includePaths = {};
+                forAll(project.subprojects, scanDependencies, {});
+                scanProductFiles(project);
+                return project;
             }
 
-            function scanDependencies(proj)
-            {
-                Object.keys(proj.subprojects).forEach(callScanDependencies, {subprojects: proj.subprojects})
-
-                if(proj.product.files)
-                    scanProductFiles(proj.product);
-
-                return proj;
-            }
-
-            var proj = scanDependencies(consolidatedRootProject);
-            rootProject = proj;
-
-            console.info("[8] Dependencies scanned");
+            print("[8/10] Scanning dependencies...");
+            var start = Date.now();
+            var project = scanDependencies(cleanedRootProject);
+            rootProject = project;
 
             if(runTests)
             {
-//                if(!rootProject.subprojects.ComplexProject.subprojects.src.subprojects.apps.subprojects.ComplexApplication.product.includes.contains("QCoreApplication")) { console.info("7.1 Failed to read includes"); return; }
-                console.info("dependencyscanner test [OK]");
+                print("    Running tests...");
+                if(getKeys(rootProject.subprojects.Include.product.includes).join(",") != "QtPlugin,QString") { print("    FAIL: Failed to extract includes from 'rootProject.subprojects.Include' project files --- EXPECTED: \"QtPlugin,QString\", ACTUAL: \"" + getKeys(rootProject.subprojects.Include.product.includes).join(",") + "\""); return; }
+                if(getKeys(rootProject.subprojects.src.subprojects.apps.subprojects.Application.product.includes).join(",") != "PrintMessage.h,PluginInterface.h,QPluginLoader,QDebug") { print("    FAIL: Failed to extract includes from 'rootProject.subprojects.src.subprojects.apps.subprojects.Application' project files --- EXPECTED: \"PrintMessage.h,PluginInterface.h,QPluginLoader,QDebug\", ACTUAL: \"" + getKeys(rootProject.subprojects.Include.product.includes).join(",") + "\""); return; }
+                print("    [Ok]");
             }
+
+            var time = Date.now() - start;
+            console.info("[8/10] Done (" + time + "ms)");
         }
     }
 
@@ -702,19 +696,6 @@ Project
 
         configure:
         {
-            if(!Array.prototype.find)
-            {
-                Object.defineProperty(Array.prototype, 'find',
-                { value: function(predicate)
-                    {
-                        if(this == null) throw new TypeError('"this" is null or not defined');
-                        if(typeof predicate !== 'function') throw new TypeError('predicate must be a function');
-                        for(var k = 0; k < (Object(this).length >>> 0); k++) if(predicate.call(arguments[1], Object(this)[k], k, Object(this))) return Object(this)[k];
-                        return undefined;
-                    }
-                });
-            }
-
             function submoduleContainsInclude(submodule)
             {
                 return modules[this.module].submodules[submodule].files.contains(this.include);
@@ -743,7 +724,8 @@ Project
 
             function isFileInclude(file)
             {
-                return this.include.contains("/") ? file.endsWith(this.include) : file.endsWith("/" + this.include);
+                return false;
+//                return this.include.contains("/") ? file.endsWith(this.include) : file.endsWith("/" + this.include);
             }
 
             function findInProject(proj, include)
@@ -803,7 +785,7 @@ Project
                 if(proj.product.includes)
                 {
                     var dependencies = {};
-                    proj.product.includes.forEach(findDependency, {dependencies: dependencies, project: proj});
+                    forAll(proj.product.includes, findDependency, {dependencies: dependencies, project: proj});
                     delete dependencies[proj.product.name];
                     proj.product.dependencies = Object.keys(dependencies);
                 }
@@ -812,6 +794,7 @@ Project
                 return proj;
             }
 
+            addFind();
             var proj = buildDependencies(dependencyScanRootProject);
             rootProject = proj;
 
