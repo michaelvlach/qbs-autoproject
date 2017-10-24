@@ -64,7 +64,7 @@ Project
         property string autoprojectDirectory: ".autoproject"
         property string projectRoot: "Example"
         property string projectFormat: ProjectFormat.Flat
-        property string dependencyMode: DependencyMode.NoHeaderOnly
+        property string dependencyMode: DependencyMode.Default
         property bool dryRun: false
         property string installDirectory: qbs.targetOS + "-" + qbs.architecture + "-" + qbs.toolchain.join("-")
 
@@ -881,8 +881,6 @@ Project
                 {
                     setProductDependencies(project);
                     print("    " + project.product.name);
-                    print("        Include: " + getKeys(project.product.includePaths).join(", "));
-                    print("        Export: " + getKeys(project.product.includedPaths).join(", "));
                 }
 
                 forAll(project.subprojects, setDependencies, {});
@@ -1041,6 +1039,7 @@ Project
         }
     }
 
+    name: configuration.name
     qbsSearchPaths: configuration.autoprojectDirectory
     references: projectwriter.references
 }
