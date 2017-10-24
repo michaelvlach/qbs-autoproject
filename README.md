@@ -117,7 +117,7 @@ Writes the project file to **autoprojectDirectory** named as the **projectRoot**
 
 ## Performance Tips
 
-Being QML/JavaScript based the performance of various steps might become an issue for large projects. To increase the performance you may consider:
+Being QML/JavaScript and using lots of file system I/O the performance of various steps might become an issue for large projects. To increase the performance you may consider:
 
 * **Disabling dependencies**: Unless your project is C/C++ you may see significant performance gains by disabling the dependencies by setting **dependencyMode** to *Disabled* as that will entirely skip several steps in the auto-detection process.
 
