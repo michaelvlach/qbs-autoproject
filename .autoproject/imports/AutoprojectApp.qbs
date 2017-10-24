@@ -1,11 +1,10 @@
 import qbs
-import qbs.FileInfo
 
 CppApplication
 {
     property stringList paths: []
-    property stringList includePaths: []
     targetName: qbs.buildVariant == "debug" ? name + "d" : name
+    
     files:
     {
         var list = [];
@@ -13,13 +12,10 @@ CppApplication
             list.push(paths[i] + "/*");
         return list;
     }
-    cpp.includePaths: paths
     
     Export
     {
-        Depends { name: "cpp" }
-        cpp.includePaths: product.includePaths
-        
+        Depends { name: "cpp" }        
         Parameters
         {
             cpp.link: false

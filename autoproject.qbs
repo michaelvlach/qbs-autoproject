@@ -48,6 +48,14 @@ Project
                 Flat: "Flat"
             };
         }
+        property var DependencyMode:
+        {
+            return {
+                Default: "Default",
+                NoHeaderOnly: "NoHeaderOnly",
+                Disabled: "Disabled"
+            }
+        }
 
         //-------------//
         //CONFIGURATION//
@@ -56,6 +64,8 @@ Project
         property string autoprojectDirectory: ".autoproject"
         property string projectRoot: "Example"
         property string projectFormat: ProjectFormat.Flat
+        property string dependencyMode: DependencyMode.NoHeaderOnly
+        property bool dryRun: false
         property string installDirectory: qbs.targetOS + "-" + qbs.architecture + "-" + qbs.toolchain.join("-")
 
         property string ignorePattern: "\\/.autoproject$"
@@ -88,14 +98,14 @@ Project
         property path rootPath: ""
         property path outPath: ""
         property string cppPattern: ""
-        property bool runTests: true
+        property bool runTests: false
 
         configure:
         {
             print(name + " @ " + Date());
             print(Array(39).join("-"));
             print("Running steps...");
-            print("[1/10] Parsing configuration...");
+            print("[1/11] Parsing configuration...");
             var start = Date.now();
             var root = makePath(sourceDirectory, projectRoot);
             var out = makePath(sourceDirectory, autoprojectDirectory);
@@ -108,12 +118,13 @@ Project
             print("    Project root: " + rootPath);
             print("    Output path: " + outPath);
             print("    Install path: " + makePath(qbs.installRoot, installDirectory));
-            print("    Output format: " + (projectFormat == ProjectFormat.Flat ? "flat" : "tree"));
+            print("    Output format: " + projectFormat);
+            print("    Dependency mode: " + dependencyMode);
             print("    Items: \n        " + getKeys(items).join("\n        "));
             print("    Modules: \n        " + getKeys(modules).join("\n        "));
 
             var time = Date.now() - start;
-            print("[1/10] Done (" + time + "ms)");
+            print("[1/11] Done (" + time + "ms)");
         }
     }
 
@@ -161,7 +172,7 @@ Project
                 return forAll(modules, scanModule, {});
             }
 
-            print("[2/10] Scanning modules...");
+            print("[2/11] Scanning modules...");
             var start = Date.now();
             var scannedModules = scanModules(configurationModules);
             modules = scannedModules;
@@ -181,7 +192,7 @@ Project
             }
 
             var time = Date.now() - start;
-            print("[2/10] Done (" + time + "ms)");
+            print("[2/11] Done (" + time + "ms)");
         }
     }
 
@@ -226,7 +237,7 @@ Project
                 };
             }
 
-            print("[3/10] Creating projects...");
+            print("[3/11] Creating projects...");
             var start = Date.now();
             var project = getProject(rootPath);
             rootProject = project;
@@ -250,7 +261,7 @@ Project
             }
 
             var time = Date.now() - start;
-            console.info("[3/10] Done (" + time + "ms)");
+            console.info("[3/11] Done (" + time + "ms)");
         }
     }
 
@@ -358,6 +369,8 @@ Project
                     project.product.includes = {};
                     project.product.dependencies = {};
                     project.product.includePaths = {};
+                    project.product.includedPaths = {};
+                    project.product.headerOnly = false;
                     print("    " + project.product.name + " (" + project.product.item + "): " + project.path);
                 }
 
@@ -376,7 +389,7 @@ Project
                 return project;
             }
 
-            print("[4/10] Creating products...");
+            print("[4/11] Creating products...");
             var start = Date.now();
             addFind();
             var project = scanProject(scannedRootProject, undefined);
@@ -386,7 +399,7 @@ Project
             if(runTests)
             {
                 print("    Running tests...");
-                if(getKeys(rootProject.subprojects.Include.product).join(",") != "item,name,paths,files,includes,dependencies,includePaths") { print("    FAIL: Failed to detect product values --- EXPECTED: \"item,name,paths,files,includes,dependencies,includePaths\", ACTUAL: \"" + getKeys(rootProject.subprojects.Include.product) + "\""); return; }
+                if(getKeys(rootProject.subprojects.Include.product).join(",") != "item,name,paths,files,includes,dependencies,includePaths,includedPaths,headerOnly") { print("    FAIL: Failed to detect product values --- EXPECTED: \"item,name,paths,files,includes,dependencies,includePaths,includedPaths,headerOnly\", ACTUAL: \"" + getKeys(rootProject.subprojects.Include.product) + "\""); return; }
                 if(rootProject.subprojects.Include.product.name != "ExampleInclude") { print("    FAIL: Incorrect name of product 'rootProject.subprojects.Include' --- EXPECTED: \"ExampleInclude\", ACTUAL: \"" + rootProject.subprojects.Include.product.name + "\""); return; }
                 if(rootProject.subprojects.Include.product.item != "AutoprojectInclude") { print("    FAIL: Incorrect item of product 'rootProject.subprojects.Include' --- EXPECTED: \"AutoprojectInclude\", ACTUAL: \"" + rootProject.subprojects.Include.product.item + "\""); return; }
                 if(!rootProject.subprojects.Include.product.files.contains(makePath(rootProject.subprojects.Include.path, "Common.h"))) { print("    FAIL: Project 'rootProject.subprojects.Include' is missing file 'Common.h'"); return; }
@@ -398,7 +411,7 @@ Project
             }
 
             var time = Date.now() - start;
-            console.info("[4/10] Done (" + time + "ms)");
+            console.info("[4/11] Done (" + time + "ms)");
         }
     }
 
@@ -455,7 +468,7 @@ Project
                 return project;
             }
 
-            print("[5/10] Merging products...");
+            print("[5/11] Merging products...");
             var start = Date.now();
             var project = mergeProject(scannedRootProject);
             rootProject = project;
@@ -472,7 +485,7 @@ Project
             }
 
             var time = Date.now() - start;
-            console.info("[5/10] Done (" + time + "ms)");
+            console.info("[5/11] Done (" + time + "ms)");
         }
     }
 
@@ -562,7 +575,7 @@ Project
 
             }
 
-            print("[6/10] Consolidating products...");
+            print("[6/11] Consolidating products...");
             var start = Date.now();
             var project = consolidateProducts(mergedRootProject);
             rootProject = project;
@@ -578,7 +591,7 @@ Project
             }
 
             var time = Date.now() - start;
-            console.info("[6/10] Done (" + time + "ms)");
+            console.info("[6/11] Done (" + time + "ms)");
         }
     }
 
@@ -608,7 +621,7 @@ Project
                 return project;
             }
 
-            print("[7/10] Cleaning projects...");
+            print("[7/11] Cleaning projects...");
             var start = Date.now();
             var project = cleanProject(mergedRootProject);
             rootProject = project;
@@ -622,7 +635,7 @@ Project
             }
 
             var time = Date.now() - start;
-            console.info("[7/10] Done (" + time + "ms)");
+            console.info("[7/11] Done (" + time + "ms)");
         }
     }
 
@@ -631,16 +644,23 @@ Project
         id: dependencyscanner
         property var cleanedRootProject: projectcleaner.rootProject
         property var cppPattern: configuration.cppPattern
-        property var cppHeadersPattern: configuration.cppHeadersPattern
+        property var cppSourcesPattern: configuration.cppSourcesPattern
         property var runTests: configuration.runTests
         property var modules: configuration.modules
+        property var dependencyMode: configuration.dependencyMode
         property var rootProject: {}
+        property var includedFiles: {}
 
         configure:
         {
-            function isSourceFile(file)
+            function isCppFile(file)
             {
                 return RegExp(cppPattern).test(file);
+            }
+
+            function isSourceFile(file)
+            {
+                return RegExp(cppSourcesPattern).test(file);
             }
 
             function scanFile(file)
@@ -649,13 +669,19 @@ Project
                 var regex = /#include\s*[<|\"]([a-zA-Z\/\.]+)[>|\"]/g;
                 var result = [];
                 while(result = regex.exec(content))
+                {
                     this.includes[result[1]] = true;
+                    includes[result[1]] = {};
+                }
             }
 
             function scanProductFiles(project)
             {
                 if(isValid(project.product))
-                    project.product.files.filter(isSourceFile).forEach(scanFile, { includes: project.product.includes });
+                {
+                    project.product.files.filter(isCppFile).forEach(scanFile, { includes: project.product.includes });
+                    project.product.headerOnly = !project.product.files.some(isSourceFile);
+                }
 
                 if(isValid(project.product.includes))
                     print("    " + project.product.name + " [" + getKeys(project.product.includes).join(", ") + "]");
@@ -668,154 +694,232 @@ Project
                 return project;
             }
 
-            print("[8/10] Scanning dependencies...");
+            print("[8/11] Scanning dependencies...");
             var start = Date.now();
-            var project = scanDependencies(cleanedRootProject);
-            rootProject = project;
 
-            if(runTests)
+            if(dependencyMode == configuration.DependencyMode.Disabled)
+                print("Dependencies disabled --- skipping");
+            else
             {
-                print("    Running tests...");
-                if(getKeys(rootProject.subprojects.Include.product.includes).join(",") != "QtPlugin,QString") { print("    FAIL: Failed to extract includes from 'rootProject.subprojects.Include' project files --- EXPECTED: \"QtPlugin,QString\", ACTUAL: \"" + getKeys(rootProject.subprojects.Include.product.includes).join(",") + "\""); return; }
-                if(getKeys(rootProject.subprojects.src.subprojects.apps.subprojects.Application.product.includes).join(",") != "PrintMessage.h,PluginInterface.h,QPluginLoader,QDebug") { print("    FAIL: Failed to extract includes from 'rootProject.subprojects.src.subprojects.apps.subprojects.Application' project files --- EXPECTED: \"PrintMessage.h,PluginInterface.h,QPluginLoader,QDebug\", ACTUAL: \"" + getKeys(rootProject.subprojects.Include.product.includes).join(",") + "\""); return; }
-                print("    [Ok]");
-            }
+                var includes = {};
+                var project = scanDependencies(cleanedRootProject);
+                rootProject = project;
+                includedFiles = includes;
 
+                if(runTests)
+                {
+                    print("    Running tests...");
+                    if(getKeys(rootProject.subprojects.Include.product.includes).join(",") != "QtPlugin,QString") { print("    FAIL: Failed to extract includes from 'rootProject.subprojects.Include' project files --- EXPECTED: \"QtPlugin,QString\", ACTUAL: \"" + getKeys(rootProject.subprojects.Include.product.includes).join(",") + "\""); return; }
+                    if(getKeys(rootProject.subprojects.src.subprojects.apps.subprojects.Application.product.includes).join(",") != "PrintMessage.h,PluginInterface.h,QPluginLoader,QDebug") { print("    FAIL: Failed to extract includes from 'rootProject.subprojects.src.subprojects.apps.subprojects.Application' project files --- EXPECTED: \"PrintMessage.h,PluginInterface.h,QPluginLoader,QDebug\", ACTUAL: \"" + getKeys(rootProject.subprojects.Include.product.includes).join(",") + "\""); return; }
+                    if(!getKeys(includedFiles).contains("QString")) { print("    FAIL: Include 'QString' not found in 'includedFiles'"); return; }
+                    if(!getKeys(includedFiles).contains("PrintMessage.h")) { print("    FAIL: Include 'PrintMessage.h' not found in 'includedFiles'"); return; }
+                    print("    [Ok]");
+                }
+            }
             var time = Date.now() - start;
-            console.info("[8/10] Done (" + time + "ms)");
+            console.info("[8/11] Done (" + time + "ms)");
         }
     }
 
     Probe
     {
-        id: dependencybuilder
-        property var dependencyScanRootProject: dependencyscanner.rootProject
+        id: includefinder
+        property var scannedRootProject: dependencyscanner.rootProject
+        property var includedFiles: dependencyscanner.includedFiles
         property var runTests: configuration.runTests
+        property var dependencyMode: configuration.dependencyMode
         property var modules: modulescanner.modules
+        property var includeMap: {}
         property var rootProject: {}
 
         configure:
         {
-            function submoduleContainsInclude(submodule)
+            function findIncludeInModules(includeName)
             {
-                return modules[this.module].submodules[submodule].files.contains(this.include);
-            }
-
-            function findInSubmodules(module, include)
-            {
-                return Object.keys(modules[module].submodules).find(submoduleContainsInclude, {module: module, include: include});
-            }
-
-            function findInModules(include)
-            {
-                for(var module in modules)
+                for(var moduleName in modules)
                 {
-                    if(modules[module].files.contains(include))
-                        return module;
+                    var file = modules[moduleName].files.find(isInclude, { includeName: includeName });
+
+                    if(file)
+                        return { name: moduleName };
                     else
                     {
-                        var submodule = findInSubmodules(module, include);
-
-                        if(submodule)
-                            return module + "." + submodule;
+                        for(var submoduleName in modules[moduleName].submodules)
+                        {
+                            if(file = modules[moduleName].submodules[submoduleName].files.find(isInclude, { includeName: includeName }))
+                                return { name: moduleName + "." + submoduleName };
+                        }
                     }
                 }
+
+                return undefined;
             }
 
-            function isFileInclude(file)
+            function isInclude(file)
             {
-                return false;
-//                return this.include.contains("/") ? file.endsWith(this.include) : file.endsWith("/" + this.include);
+                return this.includeName.contains("/") ? file.endsWith(this.includeName) : file.endsWith("/" + this.includeName);
             }
 
-            function findInProject(proj, include)
+            function findIncludeInProject(project, includeName)
             {
-                var dependency = undefined;
-
-                if(proj.product.files)
+                if(isValid(project.product))
                 {
-                    var file = proj.product.files.find(isFileInclude, {include: include});
+                    var file = project.product.files.find(isInclude, { includeName: includeName });
 
                     if(file)
                     {
-                        dependency = proj.product.name;
-                        proj.product.includePaths[FileInfo.path(file)] = true;
+                        project.product.includedPaths[getFilePath(file)] = true;
+                        return { path: getFilePath(file), product: project.product, name: project.product.name };
                     }
                 }
 
-                if(!dependency)
+                return findIncludeInProjects(project.subprojects, includeName);
+            }
+
+            function findIncludeInProjects(projects, includeName)
+            {
+                var result = undefined;
+
+                for(var projectName in projects)
                 {
-                    for(var subproject in proj.subprojects)
-                    {
-                        dependency = findInProject(proj.subprojects[subproject], include);
-
-                        if(dependency)
-                            break;
-                    }
+                     if(result = findIncludeInProject(projects[projectName], includeName))
+                         break;
                 }
 
-                return dependency;
+                return result;
             }
 
-            function findInProjects(include)
+            function isStandardHeader(includeName)
             {
-                return findInProject(dependencyScanRootProject, include);
+                return !RegExp("[A-Z\d\.]").test(includeName);
             }
 
-            function findDependency(include)
+            function findInclude(includeName)
             {
-                var dependency = findInModules(include);
-
-                if(!dependency)
-                    dependency = findInProjects(include);
-
-                if(dependency)
-                    this.dependencies[dependency] = true;
+                if(isStandardHeader(includeName))
+                    delete this.includes[includeName];
                 else
-                    console.info("WARNING: Dependency '" + include + "' not resolved to any module or project");
-            }
-
-            function callBuildDependencies(projectName)
-            {
-                buildDependencies(this.subprojects[projectName]);
-            }
-
-            function buildDependencies(proj)
-            {
-                if(proj.product.includes)
                 {
-                    var dependencies = {};
-                    forAll(proj.product.includes, findDependency, {dependencies: dependencies, project: proj});
-                    delete dependencies[proj.product.name];
-                    proj.product.dependencies = Object.keys(dependencies);
+                    this.includes[includeName] = findIncludeInProject(scannedRootProject, includeName);
+
+                    if(!isValid(this.includes[includeName]))
+                        this.includes[includeName] = findIncludeInModules(includeName);
+
+                    if(isValid(this.includes[includeName]))
+                        print("    '" + includeName + "' found in '" + this.includes[includeName].name);
+                    else
+                        print("    WARNING: Dependency '" + includeName + "' not found in any project or module");
+                }
+            }
+
+            function findIncludes(includes)
+            {
+                getKeys(includes).forEach(findInclude, { includes: includes });
+                return includes;
+            }
+
+            print("[9/11] Finding includes...");
+            var start = Date.now();
+
+            if(dependencyMode == configuration.DependencyMode.Disabled)
+                print("Dependencies disabled --- skipping");
+            else
+            {
+                addFind();
+                var includes = findIncludes(includedFiles);
+                includeMap = includes;
+                rootProject = scannedRootProject;
+
+                if(runTests)
+                {
+                    print("    Running tests...");
+                    if(includeMap.QString.name != "Qt.core") { print("    FAIL: Dependency for include 'QString' not found"); return; }
+                    if(includeMap["PrintMessage.h"].name != "ApplicationLib") { print("    FAIL: Dependency for include 'PrintMessage.h' not found"); return; }
+                    if(includeMap["PrintMessage.h"].path != rootProject.subprojects.src.subprojects.apps.subprojects.Application.subprojects.Lib.path) { print("    FAIL: Path for include 'PrintMessage.h' incorrect --- EXPECTED: \"" + rootProject.subprojects.src.subprojects.apps.subprojects.Application.subprojects.Lib.path + "\", ACTUAL: \"" + includeMap["PrintMessage.h"].path + "\""); return; }
+                    if(!rootProject.subprojects.src.subprojects.apps.subprojects.Application.subprojects.Lib.product.includedPaths[rootProject.subprojects.src.subprojects.apps.subprojects.Application.subprojects.Lib.path]) { print("    FAIL: 'includedPath' for include 'PrintMessage.h' not set"); return; }
+                    print("    [Ok]");
+                }
+            }
+
+            var time = Date.now() - start;
+            console.info("[9/11] Done (" + time + "ms)");
+        }
+    }
+
+    Probe
+    {
+        id: dependencysetter
+        property var dependencyScanRootProject: includefinder.rootProject
+        property var includes: includefinder.includeMap
+        property var runTests: configuration.runTests
+        property var dependencyMode: configuration.dependencyMode
+        property var rootProject: {}
+
+        configure:
+        {
+            function setProductDependencies(project)
+            {
+                for(var include in project.product.includes)
+                {
+                    var dependency = includes[include];
+
+                    if(isValid(dependency))
+                    {
+                        if(dependencyMode == configuration.DependencyMode.NoHeaderOnly && dependency.product && dependency.product.headerOnly)
+                            project.product.includePaths[dependency.path] = true;
+                        else
+                            project.product.dependencies[dependency.name] = true;
+                    }
                 }
 
-                Object.keys(proj.subprojects).forEach(callBuildDependencies, {subprojects: proj.subprojects});
-                return proj;
+                delete project.product.dependencies[project.product.name];
             }
 
-            addFind();
-            var proj = buildDependencies(dependencyScanRootProject);
-            rootProject = proj;
-
-            console.info("dependencies built");
-
-            if(runTests)
+            function setDependencies(project)
             {
-//                if(!rootProject.subprojects.ComplexProject.subprojects.src.subprojects.apps.subprojects.ComplexApplication.product.dependencies.contains("Qt.core")) { console.info("Dependency resolution of module failed"); return; }
-//                if(!rootProject.subprojects.ComplexProject.subprojects.src.subprojects.apps.subprojects.ComplexApplication.product.dependencies.contains("ComplexProject")) { console.info("Dependency resolution of another project failed"); return; }
-                console.info("dependencybuilder test [OK]");
+                if(isValid(project.product))
+                {
+                    setProductDependencies(project);
+                    print("    " + project.product.name);
+                    print("        Include: " + getKeys(project.product.includePaths).join(", "));
+                    print("        Export: " + getKeys(project.product.includedPaths).join(", "));
+                }
+
+                forAll(project.subprojects, setDependencies, {});
+                return project;
             }
+
+            print("[10/11] Setting dependencies...");
+            var start = Date.now();
+
+            if(dependencyMode == configuration.DependencyMode.Disabled)
+                print("Dependencies disabled --- skipping");
+            else
+            {
+                var project = setDependencies(dependencyScanRootProject);
+                rootProject = project;
+
+                if(runTests)
+                {
+                    print("    Running tests...");
+                    if(!rootProject.subprojects.src.subprojects.apps.subprojects.Application.product.dependencies["Qt.core"]) { print("    FAIL: Missing dependency 'Qt.core' in 'Application' product"); return; }
+                    if(!rootProject.subprojects.src.subprojects.apps.subprojects.Application.product.dependencies["ApplicationLib"]) { print("    FAIL: Missing dependency 'ApplicationLib' in 'Application' product"); return; }
+                    print("    [Ok]");
+                }
+            }
+            var time = Date.now() - start;
+            console.info("[10/11] Done (" + time + "ms)");
+
         }
     }
 
     Probe
     {
         id: projectwriter
-        property var rootProject: dependencybuilder.rootProject
-        property var runTests: configuration.runTests
+        property var rootProject: dependencysetter.rootProject
         property var outPath: configuration.outPath
         property var projectFormat: configuration.projectFormat
+        property bool dryRun: configuration.dryRun
         property var installDirectory: configuration.installDirectory
         property stringList references: []
 
@@ -859,7 +963,7 @@ Project
                     file.writeLine(indent + "");
                 }
 
-                if(proj.product.item)
+                if(isValid(proj.product))
                     writeProduct(file, proj.product, isProjectFormatFlat() ? indent : (indent + "    "));
 
                 for(var subproject in proj.subprojects)
@@ -871,26 +975,49 @@ Project
                 }
             }
 
+            function writeIncludePaths(file, includedPaths, includePaths, indent)
+            {
+                if(includedPaths.length > 0 || includePaths.length > 0)
+                {
+                    file.writeLine(indent + "    Depends { name: \"cpp\" }")
+                    file.writeLine(indent + "    cpp.includePaths: [\"" + includedPaths.concat(includePaths).join("\", \"") + "\"]");
+                }
+            }
+
+            function writeExport(file, includedPaths, includePaths, dependencies, indent)
+            {
+                if(includePaths.length > 0 || includedPaths.length > 0 || dependencies.length > 0)
+                {
+                    file.writeLine(indent + "Export");
+                    file.writeLine(indent + "{");
+
+                    if(includePaths.length > 0 || includedPaths.length > 0)
+                    {
+                        file.writeLine(indent + "    Depends { name: \"cpp\" }")
+                        file.writeLine(indent + "    cpp.includePaths: [\"" + includedPaths.concat(includePaths).join("\", \"") + "\"]");
+                    }
+
+                    if(dependencies.length > 0)
+                        dependencies.forEach(writeDependency, { file: file, indent: indent + "    " });
+
+                    file.writeLine(indent + "}");
+                }
+            }
+
             function writeProduct(file, product, indent)
             {
                 file.writeLine(indent + product.item);
                 file.writeLine(indent + "{");
                 file.writeLine(indent + "    name: \"" + product.name + "\"");
                 file.writeLine(indent + "    paths: [\"" + product.paths.join("\", \"") + "\"]");
-                var includePaths = Object.keys(product.includePaths);
-                if(includePaths.length > 0)
-                    file.writeLine(indent + "    includePaths: [\"" + includePaths.join("\", \"") + "\"]");
-                file.writeLine("");
-                product.dependencies.forEach(writeDependency, {file: file, indent: indent + "    "});
-                file.writeLine("");
-                if(product.dependencies.length > 0)
-                {
-                    file.writeLine(indent + "    Export");
-                    file.writeLine(indent + "    {");
-                    product.dependencies.forEach(writeDependency, {file: file, indent: indent + "        "});
-                    file.writeLine(indent + "    }");
-                }
+                writeExport(file, getKeys(product.includedPaths), getKeys(product.includePaths), getKeys(product.dependencies), indent + "    ");
+
+                if(!product.headerOnly)
+                    writeIncludePaths(file, getKeys(product.includedPaths), getKeys(product.includePaths), indent);
+
+                getKeys(product.dependencies).forEach(writeDependency, {file: file, indent: indent + "    "});
                 file.writeLine(indent + "}");
+                print("    " + product.name);
             }
 
             function writeDependency(dependency)
@@ -898,15 +1025,19 @@ Project
                 this.file.writeLine(this.indent + "Depends { name: \"" + dependency + "\" }");
             }
 
-            var refs = write(rootProject);
-            references = refs;
+            print("[11/11] Writing project...");
+            var start = Date.now();
 
-            console.info("projects written");
-
-            if(runTests)
+            if(dryRun)
+                print("Dependencies disabled --- skipping");
+            else
             {
-                console.info("projectwriter test [OK]");
+                var refs = write(rootProject);
+                references = refs;
             }
+
+            var time = Date.now() - start;
+            console.info("[11/11] Done (" + time + "ms)");
         }
     }
 
