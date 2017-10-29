@@ -698,7 +698,10 @@ Project
             var start = Date.now();
 
             if(dependencyMode == configuration.DependencyMode.Disabled)
+            {
                 print("Dependencies disabled --- skipping");
+                rootProject = cleanedRootProject;
+            }
             else
             {
                 var includes = {};
@@ -822,7 +825,10 @@ Project
             var start = Date.now();
 
             if(dependencyMode == configuration.DependencyMode.Disabled)
+            {
                 print("Dependencies disabled --- skipping");
+                rootProject = scannedRootProject;
+            }
             else
             {
                 addFind();
@@ -891,7 +897,10 @@ Project
             var start = Date.now();
 
             if(dependencyMode == configuration.DependencyMode.Disabled)
+            {
                 print("Dependencies disabled --- skipping");
+                rootProject = dependencyScanRootProject;
+            }
             else
             {
                 var project = setDependencies(dependencyScanRootProject);
