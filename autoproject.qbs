@@ -68,7 +68,7 @@ Project
         property bool dryRun: false
         property string installDirectory: qbs.targetOS + "-" + qbs.architecture + "-" + qbs.toolchain.join("-")
 
-        property string ignorePattern: "\\/.autoproject$"
+        property string ignorePattern: "\\/\\.autoproject$"
         property string additionalDirectoriesPattern: "\\/[Ii]ncludes?$"
         property string cppSourcesPattern: "\\.cpp$"
         property string cppHeadersPattern: "\\.h$"
@@ -78,7 +78,7 @@ Project
         {
             return {
                 AutoprojectApp: { pattern: "(\\/[Tt]est|[Tt]est\\.(cpp|h)|\\/[Mm]ain\\.cpp)$" },
-                AutoprojectDynamicLib: { pattern: "\\/([Ii]ncludes?|.+\.h)$", contentPattern: "[A-Z\d_]+SHARED " },
+                AutoprojectDynamicLib: { pattern: "\\/([Ii]ncludes?|.+\\.h)$", contentPattern: "[A-Z\d_]+SHARED " },
                 AutoprojectPlugin: { pattern: "\\/.+\\.h$", contentPattern: "Q_INTERFACES\\(([a-zA-Z\d]+(, |,|))+\\)" },
                 AutoprojectStaticLib: { pattern: "\\/([Ll]ib|.+\\.cpp)$" },
                 AutoprojectInclude: { pattern: "\\/([Ii]ncludes?|.+\\.h)$" },
