@@ -314,7 +314,10 @@ Project
 
             function getFileContent(file)
             {
-                return TextFile(file).readAll();
+                var textFile = TextFile(file);
+                var content = textFile.readAll();
+                textFile.close();
+                return content;
             }
 
             function getItemFromProjectPath(project)
@@ -665,7 +668,9 @@ Project
 
             function scanFile(file)
             {
-                var content = TextFile(file).readAll();
+                var textFile = TextFile(file);
+                var content = textFile.readAll();
+                textFile.close();
                 var regex = /#include\s*[<|\"]([a-zA-Z\/\.]+)[>|\"]/g;
                 var result = [];
                 while(result = regex.exec(content))
