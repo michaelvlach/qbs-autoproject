@@ -72,6 +72,7 @@ Project
         property string additionalDirectoriesPattern: "\\/[Ii]ncludes?$"
         property string cppSourcesPattern: "\\.cpp$"
         property string cppHeadersPattern: "\\.h$"
+        property string cppStandardHeadersPath: "C:/Program Files (x86)/Microsoft Visual Studio/2017/Community/VC/Tools/MSVC/14.10.25017/include/"
 
         property var items:
         {
@@ -134,7 +135,9 @@ Project
 
         property var configurationModules: configuration.modules
         property var runTests: configuration.runTests
+        property var cppStandardHeadersPath: configuration.cppStandardHeadersPath
         property var modules: {}
+        property var standardHeaders: {}
 
         configure:
         {
@@ -172,10 +175,35 @@ Project
                 return forAll(modules, scanModule, {});
             }
 
+            function scanStandardIncludePath(path)
+            {
+                var files = File.directoryEntries(path, File.Files);
+                files.forEach(function(element, index, array) { array[index] = makePath(path.replace(cppStandardHeadersPath, ""), element); });
+                var dirs = getDirectories(path);
+
+                for(var i in dirs)
+                    files = files.concat(scanStandardIncludePath(dirs[i]));
+
+                return files;
+            }
+
+            function scanStandardIncludes(path)
+            {
+                var files = scanStandardIncludePath(path);
+                var includes = {};
+
+                for(var i in files)
+                    includes[files[i]] = true;
+
+                return includes;
+            }
+
             print("[2/11] Scanning modules...");
             var start = Date.now();
             var scannedModules = scanModules(configurationModules);
             modules = scannedModules;
+            var standardIncludes = scanStandardIncludes(cppStandardHeadersPath);
+            standardHeaders = standardIncludes;
 
             //TEST
             if(runTests)
@@ -188,6 +216,8 @@ Project
                 if(modules.Qt.submodules.core.includePath != makePath(modules.Qt.includePath, "QtCore")) { print("    FAIL: 'Qt.core' has incorrect 'includePath' --- EXPECTED: \"" + makePath(modules.Qt.includePath, "QtCore") + "\", ACTUAL: \"" + modules.Qt.submodules.core.includePath) + "\""; return; }
                 if(!modules.Qt.submodules.core.files) { print("    FAIL: 'Qt.core' submodule is missing files"); return; }
                 if(!modules.Qt.submodules.core.files.contains(makePath(modules.Qt.submodules.core.includePath, "QString"))) { print("    FAIL: 'Qt.core' is missing 'QString' file"); return; }
+                if(!standardHeaders["string"]) { print("    FAIL: 'string' standard header is missing"); return; }
+                if(!standardHeaders[makePath("experimental", "forward_list")]) { print("    FAIL: 'experimental/forward_list' standard header is missing"); return; }
                 print("    [Ok]");
             }
 
@@ -737,6 +767,7 @@ Project
         property var runTests: configuration.runTests
         property var dependencyMode: configuration.dependencyMode
         property var modules: modulescanner.modules
+        property var standardHeaders: modulescanner.standardHeaders
         property var includeMap: {}
         property var rootProject: {}
 
@@ -799,13 +830,16 @@ Project
 
             function isStandardHeader(includeName)
             {
-                return !RegExp("[A-Z\d\.]").test(includeName);
+                return standardHeaders[includeName];
             }
 
             function findInclude(includeName)
             {
                 if(isStandardHeader(includeName))
+                {
+                    print("    '" + includeName + "' found in standard headers");
                     delete this.includes[includeName];
+                }
                 else
                 {
                     this.includes[includeName] = findIncludeInProject(scannedRootProject, includeName);
