@@ -984,6 +984,9 @@ Project
                 file.writeLine("    property string installDirectory: \"" + installDirectory + "\"");
                 file.writeLine("");
 
+                if(isValid(proj.product))
+                    writeProduct(file, proj.product, "    ");
+                
                 for(var subproject in proj.subprojects)
                     writeProject(file, proj.subprojects[subproject], "    ");
 
