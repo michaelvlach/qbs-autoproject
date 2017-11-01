@@ -4,7 +4,7 @@ DynamicLibrary
 {
     property stringList paths: []
     Depends { name: "cpp" }
-    cpp.defines: project.name.toUpperCase() + "_LIB"
+    cpp.defines: name.toUpperCase() + "_LIB"
     targetName: qbs.buildVariant == "debug" ? name + "d" : name
     
     files:
