@@ -77,7 +77,7 @@ Project
         property var items:
         {
             return {
-                AutoprojectApp: { pattern: "(\\/[Tt]est|[Tt]est\\.(cpp|h)|\\/[Mm]ain\\.cpp)$" },
+                AutoprojectApp: { pattern: "\\/([Tt]est|[Tt]est\\.(cpp|h)|[Mm]ain\\.cpp)$" },
                 AutoprojectDynamicLib: { pattern: "\\/([Ii]ncludes?|.+\\.h)$", contentPattern: "[A-Z\d_]+SHARED " },
                 AutoprojectPlugin: { pattern: "\\/.+\\.h$", contentPattern: "Q_INTERFACES\\(([a-zA-Z\d]+(, |,|))+\\)" },
                 AutoprojectStaticLib: { pattern: "\\/([Ll]ib|.+\\.cpp)$" },
