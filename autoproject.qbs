@@ -163,9 +163,14 @@ Project
                 return submodules;
             }
 
+            function getAbsolutePath(path)
+            {
+                return FileInfo.isAbsolutePath(path) ? path : makePath(sourceDirectory, path);
+            }
+
             function scanModule(module)
             {
-                module.files = getFiles(module.includePath);
+                module.files = getFiles(getAbsolutePath(module.includePath));
                 module.submodules = getSubmodules(getDirectories(module.includePath), this.name);
                 print("    " + this.name);
             }
