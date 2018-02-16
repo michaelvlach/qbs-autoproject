@@ -94,7 +94,7 @@ Project
         property var modules:
         {
             return {
-                Qt: { includePath: "C:/Qt/5.10.0/msvc2017_64/include" }
+                Qt: { includePath: "C:/Qt/5.10.1/msvc2017_64/include" }
             };
         }
         //--------------------//
@@ -305,7 +305,7 @@ Project
             }
 
             var time = Date.now() - start;
-            console.info("[3/11] Done (" + time + "ms)");
+            functions.print("[3/11] Done (" + time + "ms)");
         }
     }
 
@@ -437,7 +437,7 @@ Project
                 return project;
             }
 
-            print("[4/11] Creating products...");
+            functions.print("[4/11] Creating products...");
             var start = Date.now();
             functions.addFind();
             var project = scanProject(scannedRootProject, undefined);
@@ -459,7 +459,7 @@ Project
             }
 
             var time = Date.now() - start;
-            console.info("[4/11] Done (" + time + "ms)");
+            functions.print("[4/11] Done (" + time + "ms)");
         }
     }
 
@@ -534,7 +534,7 @@ Project
             }
 
             var time = Date.now() - start;
-            console.info("[5/11] Done (" + time + "ms)");
+            functions.print("[5/11] Done (" + time + "ms)");
         }
     }
 
@@ -641,7 +641,7 @@ Project
             }
 
             var time = Date.now() - start;
-            console.info("[6/11] Done (" + time + "ms)");
+            functions.print("[6/11] Done (" + time + "ms)");
         }
     }
 
@@ -686,7 +686,7 @@ Project
             }
 
             var time = Date.now() - start;
-            console.info("[7/11] Done (" + time + "ms)");
+            functions.print("[7/11] Done (" + time + "ms)");
         }
     }
 
@@ -775,7 +775,7 @@ Project
                 }
             }
             var time = Date.now() - start;
-            console.info("[8/11] Done (" + time + "ms)");
+            functions.print("[8/11] Done (" + time + "ms)");
         }
     }
 
@@ -912,7 +912,7 @@ Project
             }
 
             var time = Date.now() - start;
-            console.info("[9/11] Done (" + time + "ms)");
+            functions.print("[9/11] Done (" + time + "ms)");
         }
     }
 
@@ -980,7 +980,7 @@ Project
                 }
             }
             var time = Date.now() - start;
-            console.info("[10/11] Done (" + time + "ms)");
+            functions.print("[10/11] Done (" + time + "ms)");
 
         }
     }
@@ -1111,7 +1111,7 @@ Project
             }
 
             var time = Date.now() - start;
-            console.info("[11/11] Done (" + time + "ms)");
+            functions.print("[11/11] Done (" + time + "ms)");
         }
     }
 
