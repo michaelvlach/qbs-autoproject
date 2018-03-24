@@ -26,6 +26,12 @@ https://github.com/Resurr3ction/qbs-autoproject/
 
 * [Qbs](https://github.com/qbs/qbs), version 1.9+
 
+### For Example Project to Build:
+
+* Qt 5
+
+* [optional] Clang3.9 when building documentation with Qt 5.11+
+
 ## Quick Start
 
 1. Put **autoproject.qbs** file and **.autoproject** directory from this repository to the root of your project.

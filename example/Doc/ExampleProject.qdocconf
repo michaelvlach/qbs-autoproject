@@ -5,6 +5,14 @@ sources.fileextensions          += *.qdoc *.cpp
 generateindex                    = true
 syntaxhighlighting               = true
 version                          = 1.0
+moduleheader                     = ExampleProject.h
+includepaths                     = ../Include \
+                                   ../Include/MyLibrary \
+                                   ../src/apps/Application/Lib \
+                                   ../src/libs/Library/include \
+                                   ../src/polugins/Plugin
+
+cpp.ignoretokens = override
 
 HTML.stylesheets                 = $QTDIR/doc/global/template/style/offline.css
 HTML.headerstyles                = "<link rel=\"stylesheet\" type=\"text/css\" href=\"style/offline.css\" />\n"
