@@ -6,6 +6,8 @@
 class PluginInterface
 {
 public:
+    virtual ~PluginInterface() noexcept = default;
+
     virtual QString message() const = 0;
 };
 

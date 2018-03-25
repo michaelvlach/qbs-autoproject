@@ -10,11 +10,20 @@ includepaths                     = ../Include \
                                    ../Include/MyLibrary \
                                    ../src/apps/Application/Lib \
                                    ../src/libs/Library/include \
-                                   ../src/polugins/Plugin
+                                   ../src/plugins/Plugin \
+                                   $QTDIR/include \
+                                   $QTDIR/include/QtCore
 
-cpp.ignoretokens = override
+Cpp.ignoretokens                 = LIBRARY_SHARED \
+                                   MYLIBRARY_SHARED \
+                                   EXPORT \
+                                   IMPORT
 
-HTML.stylesheets                 = $QTDIR/doc/global/template/style/offline.css
+Cpp.ignoredirectives             = Q_DECLARE_INTERFACE \
+                                   Q_PLUGIN_METADATA \
+                                   Q_INTERFACES
+
+#HTML.stylesheets                = $QTDIR/doc/global/template/style/offline.css
 HTML.headerstyles                = "<link rel=\"stylesheet\" type=\"text/css\" href=\"style/offline.css\" />\n"
 
 Cpp.ignoretokens               += override

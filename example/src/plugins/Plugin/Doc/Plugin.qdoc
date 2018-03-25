@@ -7,7 +7,7 @@ Allows the user to print arbitrary message.
 */
 
 /*!
-\fn QString Plugin::message() const override
+\fn QString Plugin::message() const
 
 Returns a \c message.
 */
