@@ -73,11 +73,11 @@ Project
         property bool dryRun: false
         property string installDirectory: qbs.targetOS + "-" + qbs.architecture + "-" + qbs.toolchain.join("-")
 
-        property string ignorePattern: "\\/\\.autoproject$"
+        property string ignorePattern: "\\/(\\.autoproject|ExampleProject\\.h)$"
         property string additionalDirectoriesPattern: "\\/[Ii]ncludes?$"
         property string cppSourcesPattern: "\\.cpp$"
         property string cppHeadersPattern: "\\.h$"
-        property string cppStandardHeadersPath: "C:/Program Files (x86)/Microsoft Visual Studio/2017/Community/VC/Tools/MSVC/14.12.25827/include/"
+        property string cppStandardHeadersPath: "C:/Program Files (x86)/Microsoft Visual Studio/2017/Community/VC/Tools/MSVC/14.13.26128/include/"
 
         property var items:
         {
@@ -94,7 +94,7 @@ Project
         property var modules:
         {
             return {
-                Qt: { includePath: "C:/Qt/5.10.1/msvc2017_64/include" }
+                Qt: { includePath: "C:/Qt/5.11.0/msvc2017_64/include" }
             };
         }
         //--------------------//

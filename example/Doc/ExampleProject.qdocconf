@@ -6,7 +6,8 @@ generateindex                    = true
 syntaxhighlighting               = true
 version                          = 1.0
 moduleheader                     = ExampleProject.h
-includepaths                     = ../Include \
+includepaths                     = . \
+                                   ../Include \
                                    ../Include/MyLibrary \
                                    ../src/apps/Application/Lib \
                                    ../src/libs/Library/include \

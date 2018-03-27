@@ -7,12 +7,15 @@ Product
     Depends { name: "Qt"; submodules: [ "core" ]; }
     builtByDefault: false
     type: "qch"
-    
+
     files:
     {
         var list = [];
         for(var i in paths)
+        {
             list.push(paths[i] + "/*.qdoc");
+            list.push(paths[i] + "/*.h");
+        }
         return list;
     }
 
