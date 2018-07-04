@@ -1,24 +1,7 @@
 import qbs
 
-DynamicLibrary
+AutoprojectCppProduct
 {
-    property stringList paths: []
-    Depends { name: "cpp" }
-    cpp.defines: name.toUpperCase() + "_LIB"
-    targetName: qbs.buildVariant == "debug" ? name + "d" : name
-    
-    files:
-    {
-        var list = [];
-        for(var i in paths)
-            list.push(paths[i] + "/*");
-        return list;
-    }
-        
-    Group
-    {
-        qbs.install: true
-        qbs.installDir: project.installDirectory
-        fileTagsFilter: ["dynamiclibrary"]
-    }
+    type: cpp.driverFlags.contains("-static") ? "staticlibrary" : "dynamiclibrary"
+    cpp.defines: base.concat(name.toUpperCase() + "_LIB")
 }

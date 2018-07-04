@@ -32,6 +32,5 @@
 *.app
 
 # Custom
-build-*
 *.user
-.autoproject/*.qbs
+*.autoproject.qbs

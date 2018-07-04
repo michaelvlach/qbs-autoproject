@@ -33,7 +33,7 @@ Product
         for(var i in paths)
         {
             list.push(FileInfo.joinPaths(paths[i], "*.qdoc"));
-            list.push(FileInfo.joinPaths(paths[i], "*.h"));
+            list.push(FileInfo.joinPaths(paths[i], "*.module"));
         }
 
         return list;
