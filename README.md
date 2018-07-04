@@ -20,22 +20,21 @@ https://github.com/Resurr3ction/qbs-autoproject/
 
 ## Prerequisites
 
-* [Qt Creator](http://doc.qt.io/qtcreator/), version 4.4.1+ (recommended)
+* [Qt Creator](http://doc.qt.io/qtcreator/) (recommended)
 
 -OR-
 
-* [Qbs](https://github.com/qbs/qbs), version 1.9+
+* [Qbs](https://github.com/qbs/qbs)
 
 ### For Example Project to Build:
 
 * Qt 5
 
-* [optional] Clang3.9 when building documentation with Qt 5.11+
-
 ## Quick Start
 
-1. Put **autoproject.qbs** file and **.autoproject** directory from this repository to the root of your project.
-2. Open **autoproject.qbs** in Qt Creator -OR- Run **qbs build autoproject.qbs** from the command line in your project root.
+1. Put **qbs-autoproject.qbs** file (you can rename it) and **.autoproject** directory from this repository to the root of your project.
+2. Open **qbs-autoproject.qbs** amd change the **root** to suit your project or leave it empty.
+3. **qbs build autoproject.qbs** from the command line or open it in Qt Creator.
 
 ## Summary
 
@@ -45,35 +44,37 @@ qbs-autoproject project file detects projects and products recursively within a 
 
 ## Configuration
 
-Configurable settings of qbs-autoproject are located in the first Probe in **autoproject.qbs** file called "configuration" and surrounded by comment blocks.
+Configurable settings of qbs-autoproject are located in the root file **qbs-autoproject.qbs**. You may (and probably should) rename it to reflect your project.
 
-* **name**: The name of the project qbs-autoproject project that will act as your project root. This is only relevant for IDE such as Qt Creator. Default value: "Autoproject"
+* **root**: Relative path from the **autoproject.qbs** file to the desired project root. If the **autoproject.qbs** is placed in the project root its value should be `""` or `"."`. Default value: ""
 
-* **autoprojectDirectory**: Relative path to the directory where your custom qbs **items** and **modules** are placed and where the qbs-autoproject will output the generated project file. Default value: ".autoproject"
+* **format**: Style of the resulting project file. 
 
-* **projectRoot**: Relative path from the **autoproject.qbs** file to the desired project root. If the **autoproject.qbs** is placed in the project root its value should be `""` or `"."`. Default value: ""
+- **Flat** will generate flat structure of one project with all found products under it. 
 
-* **projectFormat**: Style of the resulting project file. **Flat** will generate flat structure of one project with all products; **Tree** will generate nested structure reflecting the actual file system hierarchy of products as they were discovered. Default value: "Flat".
+- **Tree** will generate nested structure reflecting the actual file system hierarchy of products as they were discovered. If a detected project contains one or more products new sub-project is created. 
+
+- **Shallow** is similar to tree but allows only one sub-project level. It is useful for complicated projects where you might not care about structure of individual sub-projects.
+
+Default value: "Tree"
 
 * **dependencyMode**: (C/C++ projects only!) Mode to use to create dependencies between products. In **Default** mode all dependencies will be created as *Depends* items. In **NoHeaderOnly** mode the products with only header files in them will not be depended upon through *Depends* items but instead the appropriate include paths will be added to each product that depends on them. For discussion about these two modes see *Exaplantion* section. If your product is not C/C++ use **Disabled** mode that will skip all steps related to dependencies. Default value: "Default"
 
+* **ignorePattern**: Regular expression to ignore directories and/or files. The pattern will be applied to the full paths of all directories and files. Use this to exclude certain parts (or files) of your project from the scan (e.g. /bin/, /build/ etc.). Default value: `"\\/(\\.autoproject|\\.git|tools)$"` (NOTE: The backslahs '\' needs to be escaped)
+
+* **sources**: Regular expression to match C/C++ source files. When merging products the products with source files (as opposed to only header files) will be merged to. Default value: `"\\.cpp$"` (NOTE: The backslahs '\' needs to be escaped)
+
+* **headers**: Regular expression to match C/C++ source files. When merging products the products with source files (as opposed to only header files) will be merged to. Default value: `"\\.h$"` (NOTE: The backslahs '\' needs to be escaped)
+
+* **squashDirs**: This regular expression pattern allows you to merge products in child directories to the product in the parent directory recursively. While generally you should have one product per directory sometimes it makes sense to put part of the product in separate directory (e.g. public headers into the *include* directory within the product directory). For example if you have a library product in directory `Example/libs/Library` you may place its public headers into the `Example/libs/Library/include` directory and set the **squashDirs** to `"\\/[Ii]ncludes?$"` to merge the *include* directory into the *Library* product. Default value: `"\\/(include|src)?$` (NOTE: The backslahs '\' needs to be escaped)
+
+* **standardHeadersPath**: Absolute path to your C++ compiler's include directory. If you are compiling for different platforms, one of the compilers you use should suffice. It is used to determine which of your includes are standard headers to ignore them when resolving dependencies. This setting is optional and will be autodetected if left empty. When cross compiling or if the autodetection fails you may want to set it manually. Default value: ""
+
 * **dryRun**: Scans for the projects and products but does not output any project file. Use this for debugging or for observing the results of the performed steps in the log. Default value: "false"
 
-* **installDirectory**: Qbs uses install-root as default installation path. If you specify a different installation root (e.g. /bin/ directory in your project root) you may also want to specify a common sub-directory to distinguish between builds for various targets. The **installDirectory** property will be made available in all projects created by qbs-autoproject and will be accessible from items and products as *project.installDirectory*. Default value: "qbs.targetOS + "-" + qbs.architecture + "-" + qbs.toolchain.join("-")"
+* **items**: Qbs lets you define reusable template products in form of [custom items](http://doc.qt.io/qbs/custom-modules.html). They will serve as base for the kind of products you wish to detect. By default there is a standard palette of C++ items defined: *GuiApplication, ConsoleApplication, DynamicLibrary, Plugin, StaticLibrary, Includes, Documentation*. You may create your own, modify the default ones or remove those that you do not use (e.g. Documentation or StaticLibrary). Each item file needs to be placed in the **.autoproject/imports**. All directories and files (absolute paths) will then be tested against the regular expression in **pattern** and if a directory (or file within a directory) will match the corresponding **item** will be created for it. Optionally you may specify **contentPattern** that will apply only to files and the **item** will only be matched if a file within given directory matches the **contentPattern** as well. The items are mutually exclusive and are tested in order of their definition so your items should be organized with most specialized at the top while the most generic are at the bottom (e.g. Application with pattern matching only main.cpp file should be higher than StaticLibrary that matches all \*.cpp files that did not match any of the previous items). For further details refer to *Exaplanation*  section.
 
-* **ignorePattern**: Regular expression to ignore directories and/or files. The pattern will be applied to the full paths of all directories and files. Use this to exclude certain parts (or files) of your project from the scan (e.g. aforementioned /bin/ directory). Default value: `"\\/.autoproject$"` (NOTE: The backslahs '\' needs to be escaped)
-
-* **additionalDirectoriesPattern**: This regular expression pattern allows you to merge products in child directories to the product in the parent directory recursively. While generally you should have one product per directory sometimes it makes sense to put part of the product in separate directory (e.g. public headers into the *include* directory within the product directory). For example if you have a library product in directory `Example/libs/Library` you may place its public headers into the `Example/libs/Library/include` directory and set the **additionalDirectoriesPattern** to `"\\/[Ii]ncludes?$"` to merge the *include* directory into the *Library* product. Default value: `"\\/[Ii]ncludes?$"` (NOTE: The backslahs '\' needs to be escaped)
-
-* **cppSourcesPattern**: Regular expression to match C/C++ source files. When merging products the products with source files (as opposed to only header files) will be merged to. Default value: `"\\.cpp$"` (NOTE: The backslahs '\' needs to be escaped)
-
-* **cppHeadersPattern**: Regular expression to match C/C++ source files. When merging products the products with source files (as opposed to only header files) will be merged to. Default value: `"\\.h$"` (NOTE: The backslahs '\' needs to be escaped)
-
-* **cppStandardHeadersPath**: Absolute path to your C++ compiler's include directory. If you are compiling for different platforms, one of the compilers you use should suffice. It is used to determine which of your includes are standard headers to ignore them. This setting is somewhat optional and mainly provides way to supress the warnings about unresolved dependencies so that you see only actually unresolved dependencies rather than standard headers marked as unresolved.
-
-* **items**: Qbs lets you define reusable template products in form of [custom items](http://doc.qt.io/qbs/custom-modules.html). They will serve as base for the kind of products you wish to detect. By default there is a standard palette of C++ items defined: *Application, DynamicLibrary, Plugin, StaticLibrary, Includes, Documentation*. You may create your own, modify the default ones or remove those that you do not use (e.g. Documentation or StaticLibrary). Each item file needs to be placed in the ***autoprojectDirectory**/imports*. All directories and files (absolute paths) will then be tested against the regular expression in **pattern** and if a directory (or file within a directory) will match the corresponding **item** will be created for it. Optionally you may specify **contentPattern** that will apply only to files and the **item** will only be matched if a file within given directory matches the **contentPattern** as well. The items are mutually exclusive and are tested in order of their definition so your items should be organized with most specialized at the top while the most generic are at the bottom (e.g. Application with pattern matching only main.cpp file should be higher than StaticLibrary that matches all \*.cpp files that did not match any of the previous items). For further details refer to *Exaplanation*  section.
-
-* **modules**: (C/C++ projects only!) While items are your internal products, modules are your external dependencies. Qbs lets you define [custom modules](http://doc.qt.io/qbs/custom-modules.html) in much the same way as custom items. They should be placed in the ***autoprojectDirectory**/modules/<module-name>/* to be accessible. In qbs-autoproject configuration you should specify only the name and **includePath** that is the root of the header files of your module. By default there is only *Qt* as a module and for that you do not need to specify your own custom module(s). For further information on how the modules are detected refer to *Exaplanation* section. 
+* **modules**: (C/C++ projects only!) While items are your internal products, modules are your external dependencies. Qbs lets you define [custom modules](http://doc.qt.io/qbs/custom-modules.html) in much the same way as custom items. They should be placed in the **.autoprojectDirectory/modules/<module-name>** to be accessible. In qbs-autoproject configuration you should specify only the name and **includePath** that is the root of the header files of your module. By default there is only *Qt* as a module and for that you do not need to specify your own custom module(s) or give it an include path. Qt will be detected automatically if installed to default location. If Qt cannot be detected or you want to use specific version or you used custom install location you need to specify path to its include directory. For further information on how the modules are detected refer to *Exaplanation* section. 
 
 ## Explanation
 
@@ -81,7 +82,7 @@ qbs-autproject consists of 11 probes each consuming results of the previous.
 
 1) **Configuration**
 
-This probe simply collects and outputs the used configuartion and serves as basis for all following probes.
+This probe simply collects and outputs the used configuartion and serves as basis for all following probes. It also attempts to detect C++ standard headers for Windows and Linux unless specified by the user, and it also tries to detect Qt module unless it is not present in modules or user provided the includePath already.
 
 2) **Module Scanner**
 
@@ -89,7 +90,7 @@ This probe scans each module's include path and loads all file names found in th
 
 3) **Project Scanner**
 
-This probe scans the **projectRoot** recursively ignoring anything that matches **ignorePattern**. It will create a project for each directory (including the root) and gather some basic information about them like the list of files and their name.
+This probe scans the **root** recursively ignoring anything that matches **ignorePattern**. It will create a project for each directory (including the root) and gather some basic information about them like the list of files and their name.
 
 4) **Product Scanner**
 
@@ -121,7 +122,7 @@ This probe will use the dependency map from **Include Finder** and assign depend
 
 11) **Project Writer**
 
-Writes the project file to **autoprojectDirectory** named as the **projectRoot** containing all the projects and products that resulted from the previous steps. When **projectFormat** is **Flat** the projects are omitted except for the root and all products are placed in the single project. Each item will be set **paths** property that it should use to add files to the product typically by using wild-cards with appropriate extensions or so. The dependencies as they were detected will also be written to the items so tere is no need to export the include paths or dependencies on other modules from the items by yourself. What you might need to export however are additional depends parameters such as `cpp.link: false` to prevent linking to the products that should not be linked to (e.g. plugins). Now if your items are correct and all dependencies were resolved during the scan your project should be buildable (or any part of it).
+Writes the project file to **.utoproject** named as the **\<root\>.autoproject.qbs** containing all the projects and products that resulted from the previous steps. When **format** is **Flat** the projects are omitted except for the root and all products are placed in the single project. Each item will be set **paths** property that it should use to add files to the product typically by using wild-cards with appropriate extensions or so. The dependencies as they were detected will also be written to the items so tere is no need to export the include paths or dependencies on other modules from the items by yourself. What you might need to export however are additional depends parameters such as `cpp.link: false` to prevent linking to the products that should not be linked to (e.g. plugins). Now if your items are correct and all dependencies were resolved during the scan your project should be buildable (or any part of it).
 
 ## Performance Tips
 
@@ -145,7 +146,7 @@ There is an example project included that demonstrates various features of the q
 
 There are certain limitations that you should keep in mind when using qbs-autoproject.
 
-1) **No exceptions to the rules** While the build-systems including Qbs rely on flexiblity and allow you to do almost anything (including this project) qbs-autoproject rely primarily on regularity. In experience it is the regularity that is most desired when working with projects because it dramatically decreases maintanance costs and ability to develop the project further. Any exception or any deviation from existing pattern(s) is undesirable as it only increases the future maintanance costs that are always much higher than the initial development. For that reason qbs-autoproject is quite hostile to anything that is specific to only one project or even a file or directory. It still can be done by abusing the **items** by adding ones that only match single specific product but you should rather reconsider your design or update your design patterns instead of creating exceptions in your projects or indeed keeping them alive.
+1) **No exceptions to the rules** While the build-systems including Qbs rely on flexiblity and allow you to do almost anything (including this project) qbs-autoproject rely primarily on regularity. In experience it is the regularity that is most desired when working with projects because it dramatically decreases maintanance costs and increases the ability to develop the project further. Any exception or any deviation from existing pattern(s) is undesirable as it only increases the future maintanance costs that are always much higher than the initial development. For that reason qbs-autoproject is quite hostile to anything that is specific to only one project or even a file or directory. It still can be done by abusing the **items** by adding ones that only match single specific product but you should rather reconsider your design or update your design patterns instead of creating exceptions in your projects or indeed keeping them alive.
 
 2) **Logical dependencies are not supported** While symbolic dependencies are clearly defined in files and code (with the common pitfall of circular header dependencies mentioned above) the logical dependencies are simply not. The fact that project A should depend on project B because of the runtime dependency even though they have nothing in common during build cannot be deduced or detected. For simple cases like plugins that should be built before their tests this can be solved by placing the interface in the product itself (provided it is the only implementation which is most often the case). For more complicated cases the only solution is to build the whole project before running your program(s).
 
@@ -157,9 +158,9 @@ There are certain limitations that you should keep in mind when using qbs-autopr
 
 There are plenty of common issues when using qbs-autoproject that has more to do with Qbs or C++ in general rather than qbs-autoproject itself. Couple of tips:
 
-1) Double check your configuration. While there are not many settings chances are there is something not quite right. Is your **rootProject** correct (and relative path)?
+1) Double check your configuration. While there are not many settings chances are there is something not quite right. Is your **root** correct (and relative path)?
 
-2) Make sure you use Qbs 1.9 and or up-to-date Qt Creator. The latter simplifies use of the former but sometimes it might not be detected correctly or there might be some issue in your Qbs profile that is being used.
+2) Make sure you use latest Qbs and or up-to-date Qt Creator. The latter simplifies use of the former but sometimes it might not be detected correctly or there might be some issue in your Qbs profile that is being used.
 
 **Running qbs-autoproject produces project that is not as expected**
 
@@ -171,7 +172,7 @@ This sometimes happen if you change the structure of your project significantly 
 
 **I have changed file/directory but the change did not take effect**
 
-This has similar cause as the previous issue (the infinite loop). The build-graph is cached and the results of probes as well. In order to re-run the probes you need to either provoke it by changing one of the variables or by running Qbs with --force-probes flag. In Qt Creator this can be done by ticking the option in the Project tab. Do not forget to untick it afterwards as otherwise it might stuck in infinite loop.
+This has similar cause as the previous issue (the infinite loop). The build-graph is cached and the results of probes as well. In order to re-run the probes you need to either provoke it by changing one of the variables or by running Qbs with --force-probes flag. In Qt Creator this can be done by ticking the option in the Project tab. Do not forget to untick it afterwards as otherwise it might get stuck in infinite loop.
 
 **Running qbs-autoproject produces dependency warnings**
 
@@ -197,9 +198,9 @@ I have grown sick over the years from writing the similar projects over and over
 
 Well if not writing project files anymore is not enough, there are quite a few perks to using qbs-autproject as well.
 
-1) Your projects can be small and many, large and plenty or just single directory of files. Since you do not need to write project file for each one and you can create and remove projects/products by creating/removing/renaming/moving files and directories it costs very little to change these patterns (as long as you follow them after) and to add new projects. Humans are better when dealing with smaller pieces rather than huge incoherent projects that nobody dares to split. In my experience with large projects adding more projects is always cumbersome and one does think twice (or indeed thirce) before doing it. Not with qbs-autoproject - just make a directory and start churning out those source files!
+1) Your projects can be small and many, large and plenty or just single directory of files. Since you do not need to write project file for each one and you can create and remove projects/products by creating/removing/renaming/moving files and directories it costs very little to change these patterns (as long as you follow them after) and to add new projects. Humans are better when dealing with smaller pieces rather than huge incoherent projects that nobody dares to split. In my experience with large projects adding more projects is always cumbersome and one does think twice (or indeed thrice) before doing it. Not with qbs-autoproject - just make a directory and start churning out those source files!
 
-2) qbs-autoproject will force you to follow your patterns. Setting up patterns is easy. Following them is hard. Especially if what you need right now is just this quick fix here or easy hack there, right? And before you know it your project is a mess nobody understands, not even you, making it painful to work with. The patterns will save you. If you just could reliably know that **every** directory named *Test* is a product of type *Application* named `<parent-product-name>Test` or that **every** directory *include* is part of the product in which it is found or that all dependencies are correctly resolved... qbs-autoproject gives you that and if something is not quite right you might spot the problem right away because in 9 cases out of 10 a pattern will be broken somewhere.
+2) qbs-autoproject will force you to follow your patterns. Setting up patterns is easy. Following them is hard. Especially if what you need right now is just this quick fix here or easy hack there, right? And before you know it your project is a mess nobody understands, not even you, making it painful to work with. The patterns will save you. If you could just reliably know that **every** directory named *Test* is a product of type *Application* named `<parent-product-name>Test` or that **every** directory *include* is part of the product in which it is found or that all dependencies are correctly resolved... qbs-autoproject gives you that and if something is not quite right you might spot the problem right away because in 9 cases out of 10 a pattern will be broken somewhere.
 
 3) You do not need to worry about dependencies. Adding includes and dependencies is easy. Removing them however is hard and is hardly ever done. If you are editing a source file and you remove some headers not only you have no idea where they came from but even if you did you cannot just remove the dependency on the module they come from because you cannot be sure it is not still being used elsewhere in the product. So you just leave it there. Eventually your projets are full of dead dependencies and links that are no longer valid. This has real implications because build-graphs generated from such projects are not as efficient as they could be. When building only certain project you may be needlessly rebuilding lots of declared dependencies that are never actually used. qbs-autproject will always keep your dependencies correct, up-to-date and exactly the way they need to be set.
 
