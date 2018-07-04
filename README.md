@@ -20,21 +20,15 @@ https://github.com/Resurr3ction/qbs-autoproject/
 
 ## Prerequisites
 
-* [Qt Creator](http://doc.qt.io/qtcreator/) (recommended)
+* [Qt Creator](http://doc.qt.io/qtcreator/) (recommended) -OR- [Qbs](https://github.com/qbs/qbs)
 
--OR-
-
-* [Qbs](https://github.com/qbs/qbs)
-
-### For Example Project to Build:
-
-* Qt 5
+* Qt 5 (optional)
 
 ## Quick Start
 
 1. Put **qbs-autoproject.qbs** file (you can rename it) and **.autoproject** directory from this repository to the root of your project.
 2. Open **qbs-autoproject.qbs** amd change the **root** to suit your project or leave it empty.
-3. **qbs build autoproject.qbs** from the command line or open it in Qt Creator.
+3. Run **qbs build qbs-autoproject.qbs** from the command line or open it in Qt Creator.
 
 ## Summary
 
@@ -48,15 +42,13 @@ Configurable settings of qbs-autoproject are located in the root file **qbs-auto
 
 * **root**: Relative path from the **autoproject.qbs** file to the desired project root. If the **autoproject.qbs** is placed in the project root its value should be `""` or `"."`. Default value: ""
 
-* **format**: Style of the resulting project file. 
+* **format**: Style of the resulting project file. Default value: "Tree"
 
-- **Flat** will generate flat structure of one project with all found products under it. 
+*Flat* will generate flat structure of one project with all found products under it. 
 
-- **Tree** will generate nested structure reflecting the actual file system hierarchy of products as they were discovered. If a detected project contains one or more products new sub-project is created. 
+*Tree* will generate nested structure reflecting the actual file system hierarchy of products as they were discovered. If a detected project contains one or more products new sub-project is created. 
 
-- **Shallow** is similar to tree but allows only one sub-project level. It is useful for complicated projects where you might not care about structure of individual sub-projects.
-
-Default value: "Tree"
+*Shallow* is similar to tree but allows only one sub-project level. It is useful for complicated projects where you might not care about structure of individual sub-projects.
 
 * **dependencyMode**: (C/C++ projects only!) Mode to use to create dependencies between products. In **Default** mode all dependencies will be created as *Depends* items. In **NoHeaderOnly** mode the products with only header files in them will not be depended upon through *Depends* items but instead the appropriate include paths will be added to each product that depends on them. For discussion about these two modes see *Exaplantion* section. If your product is not C/C++ use **Disabled** mode that will skip all steps related to dependencies. Default value: "Default"
 
