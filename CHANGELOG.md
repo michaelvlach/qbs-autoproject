@@ -18,7 +18,6 @@ Other changes:
 
 - Fixed few subtle bugs in Probes
 - Fixed few missing log messages
--
 - Removed tests from Probes
 - Unified formatting
 
