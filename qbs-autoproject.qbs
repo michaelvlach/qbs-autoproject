@@ -1,5 +1,4 @@
 import qbs
-import qbs.Environment
 import ".autoproject/autoproject.qbs" as AutoProject
 
 AutoProject

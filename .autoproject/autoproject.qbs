@@ -1,4 +1,5 @@
 import qbs
+import qbs.Environment
 import qbs.File
 import qbs.FileInfo
 import qbs.TextFile
@@ -147,7 +148,8 @@ Project
         property string cppHeadersPattern: parent.headers
         property string cppStandardHeadersPath: parent.standardHeadersPath
         property var items: parent.items
-        property var modules: parent.modules
+        property var configurationModules: parent.modules
+        property var modules: ({})
         property string rootPath: ""
         property string outPath: ""
         property string cppPattern: ""
@@ -176,7 +178,7 @@ Project
 
             function detectQt()
             {
-                if(modules.Qt && modules.Qt.includePath == "")
+                if(configurationModules.Qt && configurationModules.Qt.includePath == "")
                 {
                     var qtPath = targetOS.contains("windows") ? "C:/Qt/" : Environment.getEnv("HOME") + "/Qt/";
                     var qtVer = File.directoryEntries(qtPath, File.Dirs | File.NoDotAndDotDot)[0];
@@ -194,6 +196,7 @@ Project
             var out = functions.makePath(sourceDirectory, autoprojectDirectory);
             var cpp = cppSourcesPattern + "|" + cppHeadersPattern;
             detectStandardHeaders();
+            modules = configurationModules;
             detectQt();
             rootPath = root;
             outPath = out;
