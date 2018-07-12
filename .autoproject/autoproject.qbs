@@ -1089,13 +1089,22 @@ Project
         property string installDirectory: configuration.installDirectory
         property var references: []
         property var functions: project.functions
+        property var hostOS: qbs.hostOS
 
         configure:
         {
             function write(proj)
             {
                 var filePath = FileInfo.joinPaths(outPath, proj["name"] + ".autoproject.qbs")
-                var file = new TextFile(filePath, TextFile.WriteOnly);
+
+                var file = {
+                    content: "",
+                    writeLine: (function (text)
+                    {
+                        this.content = this.content + text + (hostOS.contains("windows") ? "\r\n" : "\n");
+                    }),
+                };
+
                 file.writeLine("import qbs");
                 file.writeLine("");
 
@@ -1112,7 +1121,21 @@ Project
                     writeProjectTree(file, proj, "");
                 }
 
-                file.close();
+                if(File.exists(filePath))
+                {
+                    var existingFile = new TextFile(filePath, TextFile.ReadOnly);
+                    var content = existingFile.readAll();
+                    existingFile.close();
+
+                    if(content == file.content)
+                    {
+                        return filePath;
+                    }
+                }
+
+                var newFile = new TextFile(filePath, TextFile.WriteOnly);
+                newFile.write(file.content);
+                newFile.close();
 
                 return filePath;
             }
@@ -1309,7 +1332,7 @@ Project
             found = true;
         }
     }
+
     qbsSearchPaths: "."
-    property var autoprojectIncludePaths: includefinder.includePaths
     references: projectwriter.references
 }
