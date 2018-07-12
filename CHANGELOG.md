@@ -2,6 +2,14 @@ CHANGELOG
 ---
 qbs-autoproject
 
+**2.1.0**
+
+- Fix probes stuck in infinite loop when changing configuration
+
+**2.0.1**
+
+- Fix issue with autodetected Qt path is not sometimes propagated to other probes.
+
 **2.0.0**
 
 New features:
