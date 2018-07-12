@@ -158,13 +158,9 @@ There are plenty of common issues when using qbs-autoproject that has more to do
 
 This is most likely caused by either incorrectly defined **items** and their detection patterns or by the issues in your project structure (if you are sure your patterns are correct). Either update the patterns to closely represent how you want your projects to be detected or change the structure of your projects. Don't forget you can use **dryRun** to examine the output without actually writing any project files.
 
-**qbs-autoproject is stuck in infinite loop**
+**I have changed project structure but the change did not take effect**
 
-This sometimes happen if you change the structure of your project significantly with Qt Creator (any version) and latest Qbs. The solution is to close the project in the Qt Creator and open it again, the project should load fine. If the issues reapeat or persist delete the build directory created by Qbs. Qbs caches the build-graph and by changing the directories and paths you can confuse it and send it to the infinte loop.
-
-**I have changed file/directory but the change did not take effect**
-
-This has similar cause as the previous issue (the infinite loop). The build-graph is cached and the results of probes as well. In order to re-run the probes you need to either provoke it by changing one of the variables or by running Qbs with --force-probes flag. In Qt Creator this can be done by ticking the option in the Project tab. Do not forget to untick it afterwards as otherwise it might get stuck in infinite loop.
+The build-graph is cached and the results of probes are as well. In order to re-do the scan and detect your new structure the probes need to be forced to run. Typically by running Qbs with --force-probes flag. In Qt Creator this can be done by ticking the option in the Project tab.
 
 **Running qbs-autoproject produces dependency warnings**
 
