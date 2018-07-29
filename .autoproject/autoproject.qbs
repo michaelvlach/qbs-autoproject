@@ -1156,7 +1156,7 @@ Project
 
                 for(var subproject in proj.subprojects)
                 {
-                    writeProjectFlat(file, proj.subprojects[subproject], indent);
+                    writeProjectFlat(file, proj.subprojects[subproject], indent == "" ? "    " : indent);
                 }
 
                 if (newProject)
