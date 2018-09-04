@@ -917,11 +917,12 @@ Project
 
                     if(file)
                     {
-                        project.product.includedPaths[functions.getFilePath(file)] = true;
-                        foundPaths[functions.getFilePath(file)] = true;
+                        var includePath = file.substring(0, file.length - includeName.length);
+                        project.product.includedPaths[includePath] = true;
+                        foundPaths[includePath] = true;
 
                         return {
-                            path: functions.getFilePath(file),
+                            path: includePath,
                             product: project.product,
                             name: project.product.name
                         };
@@ -970,7 +971,7 @@ Project
 
                     if(functions.isValid(this.includes[includeName]))
                     {
-                        functions.print("    '" + includeName + "' found in '" + this.includes[includeName].name);
+                        functions.print("    '" + includeName + "' found in '" + this.includes[includeName].name + "'");
                     }
                     else if(!includeName.endsWith(".moc"))
                     {
